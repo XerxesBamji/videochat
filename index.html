@@ -885,8 +885,10 @@
   }
 
   // ─── MIRROR TOGGLE ─────────────────────────────────────────────────
-  let isRemoteMirrored = false;
+  let isRemoteMirrored = true; // mirrored by default
   const btnMirror = document.getElementById('btn-mirror');
+  remoteVideo.classList.add('mirrored');
+  btnMirror.classList.add('active');
 
   function toggleMirror() {
     isRemoteMirrored = !isRemoteMirrored;
