@@ -833,7 +833,13 @@
       // Wait for incoming connections
     });
 
+    peer.on('disconnected', () => {
+      console.log('PeerJS disconnected from signaling server. Reconnecting...');
+      peer.reconnect();
+    });
+
     peer.on('error', (err) => {
+      console.error('PeerJS error:', err);
       if (err.type === 'unavailable-id') {
         // Host already exists — become the caller
         peer.destroy();
@@ -842,7 +848,17 @@
           isHost = false;
           connectAsCallerTo(hostPeerId);
         });
-        peer.on('error', (e) => showToast('Connection error: ' + e.message));
+        peer.on('disconnected', () => {
+          peer.reconnect();
+        });
+        peer.on('error', (e) => {
+          console.error('Caller PeerJS error:', e);
+          if (e.type !== 'disconnected') {
+            showToast('Connection error: ' + e.message);
+          }
+        });
+      } else if (err.type === 'disconnected') {
+        console.log('Ignored transient disconnected error.');
       } else {
         showToast('Error: ' + err.message);
       }
