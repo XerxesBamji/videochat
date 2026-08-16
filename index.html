@@ -969,6 +969,14 @@
   msgInput.addEventListener('focus', () => {
     showChatPanel();
   });
+
+  // Tap anywhere on the call screen to reveal messages (without forcing the keyboard to open)
+  callScreen.addEventListener('click', () => {
+    showChatPanel();
+  });
+  callScreen.addEventListener('touchstart', () => {
+    showChatPanel();
+  }, { passive: true });
 </script>
 </body>
 </html>
