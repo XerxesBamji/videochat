@@ -314,13 +314,15 @@
       bottom: 80px;
       left: 0;
       width: 100%;
-      max-height: 55%;
+      max-height: 33%;
       padding: 12px 16px;
       display: flex;
       flex-direction: column;
       gap: 0;
       pointer-events: none;
       z-index: 15;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
     }
 
     .translation-label {
@@ -346,7 +348,7 @@
       flex-direction: column;
       gap: 8px;
       overflow-y: auto;
-      max-height: calc(55vh - 40px);
+      max-height: calc(33vh - 40px);
       scrollbar-width: none;
     }
 
@@ -612,6 +614,34 @@
   // ─── CONFIG ────────────────────────────────────────────────────────
   const MYMEMORY_URL = 'https://api.mymemory.translated.net/get';
 
+  const PEER_OPTIONS = {
+    debug: 0,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
+      ]
+    }
+  };
+
   // ─── STATE ─────────────────────────────────────────────────────────
   let myLang     = 'en';
   let remoteLang = 'es';
@@ -652,6 +682,23 @@
     toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
   }
 
+  // ─── CHAT PANEL FADE OUT LOGIC ──────────────────────────────────────
+  let fadeTimer = null;
+  const chatPanel = document.getElementById('chat-panel');
+
+  function showChatPanel() {
+    chatPanel.style.opacity = '1';
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => {
+      // Fade out if no input content is active or focused
+      if (document.activeElement !== msgInput || msgInput.value.trim() === '') {
+        chatPanel.style.opacity = '0';
+      } else {
+        showChatPanel(); // keep checking
+      }
+    }, 6000); // 6 seconds
+  }
+
   // ─── TRANSLATION ───────────────────────────────────────────────────
   async function translate(text, fromLang, toLang) {
     if (fromLang === toLang || !text.trim()) return text;
@@ -666,6 +713,7 @@
 
   // ─── CHAT BUBBLES ──────────────────────────────────────────────────
   function addMessage({ mainText, originalText, isSelf }) {
+    showChatPanel();
     const bubble = document.createElement('div');
     bubble.className = `msg-bubble ${isSelf ? 'self' : 'other'}`;
 
@@ -701,6 +749,7 @@
       return;
     }
 
+    showChatPanel();
     msgInput.value = '';
 
     // Send { text, lang } to remote
@@ -718,6 +767,10 @@
 
   // ─── HANDLE INCOMING CHAT ──────────────────────────────────────────
   async function handleRemoteMessage(data) {
+    showChatPanel();
+    if (data.type === 'typing') {
+      return;
+    }
     const { text, lang: senderLang } = data;
     remoteLang = senderLang; // keep in sync
     const translated = await translate(text, senderLang, myLang);
@@ -770,10 +823,7 @@
     const hostPeerId = 'vc-' + roomCode; // stable host ID based on room code
 
     // Try to register as host
-    peer = new Peer(hostPeerId, {
-      // Uses PeerJS free cloud server (0.peerjs.com)
-      debug: 0
-    });
+    peer = new Peer(hostPeerId, PEER_OPTIONS);
 
     peer.on('open', (id) => {
       isHost = true;
@@ -785,7 +835,7 @@
       if (err.type === 'unavailable-id') {
         // Host already exists — become the caller
         peer.destroy();
-        peer = new Peer({ debug: 0 });
+        peer = new Peer(PEER_OPTIONS);
         peer.on('open', () => {
           isHost = false;
           connectAsCallerTo(hostPeerId);
@@ -839,6 +889,7 @@
 
     initPeer();
     msgInput.focus();
+    showChatPanel();
   }
 
   // ─── END CALL ──────────────────────────────────────────────────────
@@ -906,6 +957,16 @@
   btnMic.addEventListener('click', toggleMic);
   btnSpeaker.addEventListener('click', toggleSpeaker);
   btnMirror.addEventListener('click', toggleMirror);
+
+  msgInput.addEventListener('input', () => {
+    showChatPanel();
+    if (conn && conn.open) {
+      conn.send({ type: 'typing' });
+    }
+  });
+  msgInput.addEventListener('focus', () => {
+    showChatPanel();
+  });
 </script>
 </body>
 </html>
