@@ -619,7 +619,7 @@
   // In production (Netlify) → use our self-hosted server on Render
   // In local dev → use localhost
   const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-  const PEER_HOST    = isLocal ? 'localhost' : 'xmvideochat.onrender.com';
+  const PEER_HOST    = isLocal ? 'localhost' : 'videochat-woi3.onrender.com';
   const PEER_PORT    = isLocal ? 3000 : 443;
   const PEER_SECURE  = !isLocal;
   const PEER_PATH    = '/peerjs';
