@@ -622,7 +622,7 @@
   const PEER_HOST    = isLocal ? 'localhost' : 'videochat-woi3.onrender.com';
   const PEER_PORT    = isLocal ? 3000 : 443;
   const PEER_SECURE  = !isLocal;
-  const PEER_PATH    = '/peerjs';
+  const PEER_PATH    = '/peerjs/'; // trailing slash required — PeerJS appends 'peerjs' directly
 
   const ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
