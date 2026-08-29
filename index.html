@@ -615,37 +615,51 @@
 <script>
   // ─── CONFIG ────────────────────────────────────────────────────────
   const MYMEMORY_URL = 'https://api.mymemory.translated.net/get';
+  // ─── PEER SERVER CONFIG ────────────────────────────────────────────
+  // In production (Netlify) → use our self-hosted server on Render
+  // In local dev → use localhost
+  const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  const PEER_HOST    = isLocal ? 'localhost' : 'xmvideochat.onrender.com';
+  const PEER_PORT    = isLocal ? 3000 : 443;
+  const PEER_SECURE  = !isLocal;
+  const PEER_PATH    = '/peerjs';
 
-  const PEER_OPTIONS = {
-    debug: 0,
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:a.relay.metered.ca:80' },
-        {
-          urls: 'turn:a.relay.metered.ca:80',
-          username: 'eb53425571a70a0f5d47997d',
-          credential: 'Xy6+zkfaDIe33IKI'
-        },
-        {
-          urls: 'turn:a.relay.metered.ca:80?transport=tcp',
-          username: 'eb53425571a70a0f5d47997d',
-          credential: 'Xy6+zkfaDIe33IKI'
-        },
-        {
-          urls: 'turn:a.relay.metered.ca:443',
-          username: 'eb53425571a70a0f5d47997d',
-          credential: 'Xy6+zkfaDIe33IKI'
-        },
-        {
-          urls: 'turn:a.relay.metered.ca:443?transport=tcp',
-          username: 'eb53425571a70a0f5d47997d',
-          credential: 'Xy6+zkfaDIe33IKI'
-        }
-      ]
+  const ICE_SERVERS = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:a.relay.metered.ca:80' },
+    {
+      urls: 'turn:a.relay.metered.ca:80',
+      username: 'eb53425571a70a0f5d47997d',
+      credential: 'Xy6+zkfaDIe33IKI'
+    },
+    {
+      urls: 'turn:a.relay.metered.ca:80?transport=tcp',
+      username: 'eb53425571a70a0f5d47997d',
+      credential: 'Xy6+zkfaDIe33IKI'
+    },
+    {
+      urls: 'turn:a.relay.metered.ca:443',
+      username: 'eb53425571a70a0f5d47997d',
+      credential: 'Xy6+zkfaDIe33IKI'
+    },
+    {
+      urls: 'turn:a.relay.metered.ca:443?transport=tcp',
+      username: 'eb53425571a70a0f5d47997d',
+      credential: 'Xy6+zkfaDIe33IKI'
     }
-  };
+  ];
+
+  function makePeerOptions() {
+    return {
+      host: PEER_HOST,
+      port: PEER_PORT,
+      secure: PEER_SECURE,
+      path: PEER_PATH,
+      debug: 0,
+      config: { iceServers: ICE_SERVERS }
+    };
+  }
 
   // ─── STATE ─────────────────────────────────────────────────────────
   let myLang     = 'en';
@@ -828,7 +842,7 @@
     const hostPeerId = 'vc-' + roomCode; // stable host ID based on room code
 
     // Try to register as host
-    peer = new Peer(hostPeerId, PEER_OPTIONS);
+    peer = new Peer(hostPeerId, makePeerOptions());
 
     peer.on('open', (id) => {
       isHost = true;
@@ -846,7 +860,7 @@
       if (err.type === 'unavailable-id') {
         // Host already exists — become the caller
         peer.destroy();
-        peer = new Peer(PEER_OPTIONS);
+        peer = new Peer(makePeerOptions());
         peer.on('open', () => {
           isHost = false;
           connectAsCallerTo(hostPeerId);
