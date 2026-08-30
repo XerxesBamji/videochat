@@ -6,35 +6,50 @@ const path = require('path');
 const app = express();
 const server = createServer(app);
 
-// No-cache headers so dev changes are always picked up
+// CORS and No-cache headers
 app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
 
+// Online peers presence set
+const onlinePeers = new Set();
+
 // PeerJS signaling server mounted at /peerjs
 const peerServer = ExpressPeerServer(server, {
   path: '/',
   allow_discovery: false,
-  // Trust Render.com / other reverse proxy headers
   proxied: process.env.NODE_ENV === 'production'
 });
 
 app.use('/peerjs', peerServer);
 
 peerServer.on('connection', (client) => {
-  console.log('[PeerJS] Connected:', client.getId());
+  const id = client.getId();
+  onlinePeers.add(id);
+  console.log('[PeerJS] Connected:', id, '| Online total:', onlinePeers.size);
 });
 
 peerServer.on('disconnect', (client) => {
-  console.log('[PeerJS] Disconnected:', client.getId());
+  const id = client.getId();
+  onlinePeers.delete(id);
+  console.log('[PeerJS] Disconnected:', id, '| Online total:', onlinePeers.size);
+});
+
+// Presence endpoint
+app.get('/api/presence', (req, res) => {
+  res.json({ online: Array.from(onlinePeers) });
 });
 
 // Health check endpoint (keeps Render free tier awake)
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', onlineCount: onlinePeers.size }));
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

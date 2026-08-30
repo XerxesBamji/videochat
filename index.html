@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Video Call</title>
+  <title>Xerxes &amp; Malena — Video Call</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <!-- PeerJS handles WebRTC signaling — no backend server needed -->
+  <!-- PeerJS WebRTC signaling library -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,7 +20,8 @@
       --glass-border: rgba(255,255,255,0.08);
       --text: #ffffff;
       --text-dim: rgba(255,255,255,0.55);
-      --radius: 14px;
+      --radius: 16px;
+      --green: #10B981;
     }
 
     body {
@@ -34,117 +35,364 @@
       justify-content: center;
     }
 
-    /* ─── JOIN SCREEN ─────────────────────────────────── */
-    #join-screen {
+    /* ─── SCREENS ─────────────────────────────────────── */
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .screen.active {
       display: flex;
+    }
+
+    /* ─── 1. PROFILE SELECTION SCREEN ─────────────────── */
+    #profile-select-screen {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 28px;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(ellipse at 50% 60%, #1a0a2e 0%, #0a0a0a 70%);
+      gap: 32px;
+      background: radial-gradient(ellipse at 50% 60%, #200a2e 0%, #0a0a0a 75%);
       padding: 24px;
     }
 
-    #join-screen h1 {
-      font-size: 2rem;
+    .title-badge {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--pink);
+      background: rgba(255,45,120,0.12);
+      border: 1px solid rgba(255,45,120,0.3);
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    h1.app-title {
+      font-size: 2.2rem;
       font-weight: 700;
       letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #fff 30%, var(--pink));
+      background: linear-gradient(135deg, #ffffff 40%, var(--pink));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-    }
-
-    #join-screen p {
-      color: var(--text-dim);
-      font-size: 0.95rem;
       text-align: center;
-      max-width: 340px;
-      line-height: 1.6;
     }
 
-    .join-card {
+    .profile-card-container {
+      display: flex;
+      gap: 18px;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .profile-btn {
+      flex: 1;
       background: rgba(255,255,255,0.04);
       border: 1px solid var(--glass-border);
       border-radius: 20px;
-      padding: 32px 36px;
+      padding: 28px 16px;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      color: #fff;
+      backdrop-filter: blur(20px);
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    .profile-btn:hover {
+      transform: translateY(-3px);
+      border-color: var(--pink);
+      background: rgba(255,45,120,0.08);
+      box-shadow: 0 12px 36px rgba(255,45,120,0.25);
+    }
+
+    .profile-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      border: 2px solid rgba(255,255,255,0.1);
+    }
+
+    .profile-name {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .profile-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    /* ─── 2. LOBBY SCREEN (PRESENCE & CALL) ────────────── */
+    #lobby-screen {
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      background: radial-gradient(ellipse at 50% 50%, #1e092b 0%, #08080c 75%);
+      padding: 36px 24px;
+    }
+
+    .lobby-topbar {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 30px;
+      padding: 8px 16px;
+      backdrop-filter: blur(12px);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
+
+    .switch-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: color 0.15s;
+    }
+
+    .switch-btn:hover {
+      color: var(--pink);
+    }
+
+    .partner-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      padding: 40px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       gap: 20px;
       width: 100%;
       max-width: 380px;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      backdrop-filter: blur(24px);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+      text-align: center;
     }
 
-    .join-card label {
-      font-size: 0.78rem;
+    .partner-avatar-wrapper {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .partner-avatar {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,45,120,0.15));
+      border: 3px solid rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.2rem;
+      z-index: 2;
+    }
+
+    .pulse-halo {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: var(--green);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 1;
+    }
+
+    .pulse-halo.online {
+      opacity: 0.3;
+      animation: pulse-ring 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.9); opacity: 0.5; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.84rem;
       font-weight: 600;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      display: block;
-      margin-bottom: 6px;
-    }
-
-    .join-card input,
-    .join-card select {
-      width: 100%;
+      padding: 5px 14px;
+      border-radius: 20px;
       background: rgba(255,255,255,0.06);
       border: 1px solid var(--glass-border);
-      border-radius: 10px;
-      padding: 13px 16px;
-      color: #fff;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s;
     }
 
-    .join-card input:focus,
-    .join-card select:focus { border-color: var(--pink); }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #777;
+    }
 
-    .join-card select option { background: #1a1a2e; color: #fff; }
+    .status-badge.online .status-dot {
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+    }
 
-    #join-btn {
+    .status-badge.online {
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .partner-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    #call-partner-btn {
       width: 100%;
-      padding: 14px;
-      border-radius: 12px;
+      padding: 16px;
+      border-radius: 16px;
       border: none;
       background: linear-gradient(135deg, var(--pink), #c720a8);
       color: #fff;
       font-family: 'Inter', sans-serif;
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 24px rgba(255,45,120,0.4);
-      letter-spacing: 0.3px;
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+      box-shadow: 0 6px 28px rgba(255,45,120,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
 
-    #join-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 32px rgba(255,45,120,0.55); }
-    #join-btn:active { transform: translateY(0); }
+    #call-partner-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 36px rgba(255,45,120,0.6);
+    }
 
-    .join-hint {
+    #call-partner-btn:active {
+      transform: translateY(0);
+    }
+
+    .lobby-hint {
       display: flex;
       align-items: center;
       gap: 8px;
       color: var(--text-dim);
       font-size: 0.8rem;
+      text-align: center;
     }
 
-    .join-hint span.dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--pink);
-      flex-shrink: 0;
-    }
-
-    /* ─── CALL SCREEN ─────────────────────────────────── */
-    #call-screen {
+    /* ─── 3. MODALS (INCOMING / OUTGOING) ─────────────── */
+    .modal-overlay {
       display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(16px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .call-dialog {
+      background: rgba(25, 20, 35, 0.92);
+      border: 1px solid rgba(255,45,120,0.3);
+      border-radius: 28px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.8), 0 0 40px rgba(255,45,120,0.2);
+      animation: modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modal-in {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .call-dialog h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .dialog-actions {
+      display: flex;
+      gap: 14px;
+      width: 100%;
+    }
+
+    .dialog-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+
+    .dialog-btn.accept {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(16,185,129,0.4);
+    }
+
+    .dialog-btn.decline {
+      background: rgba(255,255,255,0.08);
+      color: #ff5c77;
+      border: 1px solid rgba(255,92,119,0.3);
+    }
+
+    .dialog-btn.cancel {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border: 1px solid var(--glass-border);
+    }
+
+    .dialog-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    /* ─── 4. CALL SCREEN ──────────────────────────────── */
+    #call-screen {
       position: relative;
       width: 100vw;
       height: 100dvh;
@@ -159,9 +407,14 @@
       height: 100%;
       object-fit: cover;
       background: #111;
+      transition: transform 0.3s;
     }
 
-    /* Waiting overlay */
+    #remote-video.mirrored {
+      transform: scaleX(-1);
+    }
+
+    /* Waiting overlay inside call */
     #waiting-overlay {
       position: absolute;
       inset: 0;
@@ -170,73 +423,46 @@
       align-items: center;
       justify-content: center;
       gap: 16px;
-      background: radial-gradient(ellipse at 50% 50%, #1a0a2e 0%, #050508 80%);
+      background: radial-gradient(ellipse at 50% 50%, #1e092b 0%, #050508 80%);
       z-index: 5;
-      transition: opacity 0.5s;
+      transition: opacity 0.4s;
     }
 
-    #waiting-overlay.hidden { opacity: 0; pointer-events: none; }
-
-    .waiting-pulse {
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      background: rgba(255,45,120,0.15);
-      display: flex; align-items: center; justify-content: center;
-      animation: pulse-ring 2s ease-in-out infinite;
+    #waiting-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
     }
 
-    .waiting-pulse svg { width: 36px; height: 36px; fill: var(--pink); }
-
-    @keyframes pulse-ring {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(255,45,120,0.4); }
-      50% { box-shadow: 0 0 0 20px rgba(255,45,120,0); }
+    /* Top Left Speaker Toggle */
+    #btn-speaker {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 25;
     }
 
-    #waiting-overlay p { color: var(--text-dim); font-size: 1rem; }
-
-    #waiting-overlay strong {
-      display: block;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #fff;
-      letter-spacing: 0.5px;
-    }
-
-    #waiting-room-code {
-      display: inline-block;
-      background: rgba(255,45,120,0.15);
-      border: 1px solid rgba(255,45,120,0.3);
-      border-radius: 8px;
-      padding: 4px 14px;
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: 2px;
-      color: var(--pink);
-    }
-
-    /* Self-view PiP — top right (larger) */
+    /* PiP Self Camera */
     #self-video-container {
       position: absolute;
       top: 16px;
       right: 16px;
       width: 220px;
       height: 160px;
-      border-radius: 16px;
+      border-radius: var(--radius);
       overflow: hidden;
-      border: 2px solid rgba(255,255,255,0.15);
-      box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.18);
+      background: #181822;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.6);
       z-index: 20;
-      background: #1a1a1a;
     }
 
     #self-video {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(-1);
+      transform: scaleX(-1); /* mirror self by default */
     }
 
-    /* Mic toggle — sits inside the PiP corner */
     #btn-mic {
       position: absolute;
       top: 8px;
@@ -246,18 +472,10 @@
       z-index: 25;
     }
 
-    /* Speaker toggle — top left */
-    #btn-speaker {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      z-index: 25;
-    }
-
-    /* Mirror toggle — appears on hover over the remote video area */
+    /* Mirror toggle — hover below PiP */
     #btn-mirror {
       position: absolute;
-      top: 188px; /* just below the PiP (16px + 160px + 12px) */
+      top: 188px;
       right: 16px;
       z-index: 25;
       opacity: 0;
@@ -275,19 +493,16 @@
       border-color: rgba(255,45,120,0.5);
     }
 
-    /* Mirrored remote video */
-    #remote-video.mirrored {
-      transform: scaleX(-1);
-    }
-
-    /* Icon button base */
     .icon-btn {
       background: rgba(20,20,30,0.78);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 50%;
-      width: 42px; height: 42px;
-      display: flex; align-items: center; justify-content: center;
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       color: #fff;
       transition: background 0.2s, transform 0.15s, border-color 0.2s;
@@ -300,7 +515,8 @@
     .icon-btn.muted svg { color: var(--pink); }
 
     .icon-btn svg {
-      width: 20px; height: 20px;
+      width: 20px;
+      height: 20px;
       stroke: currentColor;
       stroke-width: 1.8;
       fill: none;
@@ -372,176 +588,257 @@
     }
 
     @keyframes bubble-in {
-      from { opacity: 0; transform: translateY(6px) scale(0.97); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
+      from { transform: translateY(6px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    .msg-bubble.self {
+      align-self: flex-start;
+      border-left: 2.5px solid var(--pink);
+    }
+
+    .msg-bubble.other {
+      align-self: flex-end;
+      border-right: 2.5px solid #a855f7;
+      text-align: right;
     }
 
     .msg-sender {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
       color: var(--pink);
-      letter-spacing: 0.3px;
     }
 
+    .msg-bubble.other .msg-sender { color: #c084fc; }
+
     .msg-main {
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       font-weight: 500;
-      color: #fff;
-      line-height: 1.5;
+      line-height: 1.35;
+      word-break: break-word;
     }
 
     .msg-original {
-      font-size: 0.78rem;
-      color: rgba(255,255,255,0.42);
-      font-weight: 400;
-      line-height: 1.4;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.45);
       font-style: italic;
+      word-break: break-word;
     }
 
-    /* ─── BOTTOM BAR ──────────────────────────────────── */
-    #bottom-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 72px;
-      display: flex;
-      align-items: center;
-      background: rgba(10,10,15,0.92);
-      backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(255,255,255,0.06);
-      z-index: 30;
-    }
-
-    #msg-input {
-      flex: 1;
-      height: 100%;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: #fff;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.95rem;
-      padding: 0 20px;
-      caret-color: var(--pink);
-    }
-
-    #msg-input::placeholder { color: rgba(255,255,255,0.3); }
-
-    #btn-send {
-      height: 100%;
-      padding: 0 32px;
-      border: none;
-      background: linear-gradient(135deg, var(--pink) 0%, #c720a8 100%);
-      color: #fff;
-      font-family: 'Inter', sans-serif;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: 0.3px;
-      transition: filter 0.2s, transform 0.15s;
-      flex-shrink: 0;
-    }
-
-    #btn-send:hover { filter: brightness(1.12); }
-    #btn-send:active { transform: scale(0.98); }
-
-    /* ─── END BUTTON ──────────────────────────────────── */
+    /* End Button */
     #btn-end {
       position: absolute;
       bottom: 80px;
       right: 16px;
-      z-index: 30;
-      background: rgba(20,20,30,0.82);
+      background: rgba(255,45,70,0.85);
       backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
-      padding: 10px 22px;
+      border: 1px solid rgba(255,100,120,0.4);
       color: #fff;
       font-family: 'Inter', sans-serif;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 20px;
       cursor: pointer;
-      letter-spacing: 0.4px;
-      transition: background 0.2s, transform 0.15s;
+      z-index: 25;
+      transition: background 0.15s, transform 0.15s;
     }
 
-    #btn-end:hover { background: rgba(200,20,50,0.5); border-color: rgba(220,30,60,0.4); }
-    #btn-end:active { transform: scale(0.97); }
+    #btn-end:hover { background: #e02040; transform: scale(1.05); }
 
-    /* ─── TOAST ───────────────────────────────────────── */
-    #toast {
+    /* Bottom input bar */
+    #bottom-bar {
       position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-80px);
-      background: rgba(20,20,30,0.9);
-      backdrop-filter: blur(16px);
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(8, 8, 14, 0.85);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      z-index: 20;
+    }
+
+    #msg-input {
+      flex: 1;
+      height: 46px;
+      background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
+      border-radius: 23px;
+      padding: 0 18px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    #msg-input:focus {
+      border-color: var(--pink);
+      background: rgba(255,255,255,0.1);
+    }
+
+    #msg-input::placeholder { color: rgba(255,255,255,0.35); }
+
+    #btn-send {
+      height: 46px;
+      padding: 0 24px;
+      border-radius: 23px;
+      border: none;
+      background: linear-gradient(135deg, var(--pink), #c720a8);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+
+    #btn-send:hover { transform: scale(1.04); }
+    #btn-send:active { transform: scale(0.97); }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      background: rgba(20,20,30,0.92);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(16px);
+      color: #fff;
       padding: 10px 20px;
-      font-size: 0.85rem;
-      color: var(--text-dim);
-      z-index: 100;
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+      border-radius: 20px;
+      font-size: 0.88rem;
+      font-weight: 500;
       opacity: 0;
-      white-space: nowrap;
+      pointer-events: none;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s;
+      z-index: 200;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     }
 
     #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-    /* ─── RESPONSIVE ──────────────────────────────────── */
     @media (max-width: 480px) {
       #self-video-container { width: 160px; height: 120px; }
-      #btn-send { padding: 0 22px; font-size: 0.9rem; }
+      #btn-send { padding: 0 20px; }
       .msg-bubble { max-width: 88%; }
     }
   </style>
 </head>
 <body>
 
-<!-- ══════════════ JOIN SCREEN ══════════════ -->
-<div id="join-screen">
-  <h1>💌 Video Call</h1>
-  <p>Enter the same room code on both devices to connect.</p>
-
-  <div class="join-card">
-    <div>
-      <label for="room-input">Room Code</label>
-      <input id="room-input" type="text" placeholder="e.g. sunshine123" autocomplete="off" spellcheck="false" />
+<!-- ══════════════ 1. PROFILE SELECTION SCREEN ══════════════ -->
+<div id="profile-select-screen" class="screen">
+  <div class="title-badge">Private Video Call</div>
+  <h1 class="app-title">Who are you?</h1>
+  <div class="profile-card-container">
+    <div class="profile-btn" data-user="xerxes">
+      <div class="profile-avatar">🇬🇧</div>
+      <div class="profile-name">Xerxes</div>
+      <div class="profile-sub">United Kingdom</div>
     </div>
-    <div>
-      <label for="lang-select">Your Language</label>
-      <select id="lang-select">
-        <option value="en">🇬🇧 English</option>
-        <option value="es">🇪🇸 Spanish (Español)</option>
-      </select>
-    </div>
-    <button id="join-btn">Start Call</button>
-    <div class="join-hint">
-      <span class="dot"></span>
-      Messages translate automatically between English &amp; Spanish
+    <div class="profile-btn" data-user="malena">
+      <div class="profile-avatar">🇦🇷</div>
+      <div class="profile-name">Malena</div>
+      <div class="profile-sub">Argentina</div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════ CALL SCREEN ══════════════ -->
-<div id="call-screen">
+<!-- ══════════════ 2. LOBBY SCREEN ══════════════ -->
+<div id="lobby-screen" class="screen">
+  <div class="lobby-topbar">
+    <div class="user-pill">
+      <span id="my-avatar">🇬🇧</span>
+      <span>Hi, <strong id="my-name">Xerxes</strong></span>
+    </div>
+    <button id="switch-profile-btn" class="switch-btn">Switch Profile</button>
+  </div>
 
+  <div class="partner-card">
+    <div class="partner-avatar-wrapper">
+      <div id="partner-halo" class="pulse-halo"></div>
+      <div id="partner-avatar" class="partner-avatar">🇦🇷</div>
+    </div>
+    <div>
+      <div id="partner-name" class="partner-title">Malena</div>
+      <div id="partner-status" class="status-badge" style="margin-top:8px;">
+        <span class="status-dot"></span>
+        <span id="partner-status-text">Checking status…</span>
+      </div>
+    </div>
+
+    <button id="call-partner-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.12-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
+      </svg>
+      <span>Call Malena</span>
+    </button>
+  </div>
+
+  <div class="lobby-hint">
+    <span>✨ Live English &amp; Spanish auto-translation ready</span>
+  </div>
+</div>
+
+<!-- ══════════════ 3. OUTGOING CALL MODAL ══════════════ -->
+<div id="outgoing-call-modal" class="modal-overlay">
+  <div class="call-dialog">
+    <div class="partner-avatar-wrapper">
+      <div class="pulse-halo online"></div>
+      <div id="out-avatar" class="partner-avatar">🇦🇷</div>
+    </div>
+    <div>
+      <h2 id="out-title">Calling Malena…</h2>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:4px;">Waiting for answer…</p>
+    </div>
+    <div class="dialog-actions">
+      <button id="btn-cancel-call" class="dialog-btn cancel">Cancel Call</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 4. INCOMING CALL MODAL ══════════════ -->
+<div id="incoming-call-modal" class="modal-overlay">
+  <div class="call-dialog">
+    <div class="partner-avatar-wrapper">
+      <div class="pulse-halo online"></div>
+      <div id="inc-avatar" class="partner-avatar">🇬🇧</div>
+    </div>
+    <div>
+      <h2 id="inc-title">Xerxes is calling!</h2>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:4px;">Incoming video call…</p>
+    </div>
+    <div class="dialog-actions">
+      <button id="btn-decline-call" class="dialog-btn decline">Decline</button>
+      <button id="btn-accept-call" class="dialog-btn accept">Accept</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ 5. ACTIVE CALL SCREEN ══════════════ -->
+<div id="call-screen" class="screen">
   <!-- Remote video (background) -->
   <video id="remote-video" autoplay playsinline></video>
 
-  <!-- Waiting for peer -->
+  <!-- Waiting overlay -->
   <div id="waiting-overlay">
     <div class="waiting-pulse">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 24 24" fill="currentColor">
         <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.12-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
       </svg>
     </div>
     <div style="text-align:center">
-      <strong>Waiting for the other person…</strong>
-      <p style="margin-top:8px">Share your room code:</p>
-      <div id="waiting-room-code"></div>
+      <strong>Connecting video stream…</strong>
+      <p style="margin-top:8px;color:var(--text-dim);">Please hold on a moment</p>
     </div>
   </div>
 
@@ -559,12 +856,10 @@
     </svg>
   </button>
 
-  <!-- Self-view PiP (larger) -->
+  <!-- Self-view PiP -->
   <div id="self-video-container">
     <video id="self-video" autoplay playsinline muted></video>
-    <!-- Mic button inside PiP -->
-    <button id="btn-mic" class="icon-btn" title="Toggle microphone" aria-label="Toggle microphone"
-      style="position:absolute;top:8px;right:8px;width:34px;height:34px;">
+    <button id="btn-mic" class="icon-btn" title="Toggle microphone" aria-label="Toggle microphone">
       <svg id="icon-mic-on" viewBox="0 0 24 24" style="width:16px;height:16px;">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -581,7 +876,7 @@
     </button>
   </div>
 
-  <!-- Mirror toggle — fades in on hover over the remote video -->
+  <!-- Mirror toggle -->
   <button id="btn-mirror" class="icon-btn" title="Mirror video" aria-label="Toggle mirror">
     <svg viewBox="0 0 24 24">
       <path d="M12 3v18"/>
@@ -598,31 +893,46 @@
     <div id="messages-container"></div>
   </div>
 
-  <!-- End button (above bottom bar) -->
-  <button id="btn-end">End</button>
+  <!-- End button -->
+  <button id="btn-end">End Call</button>
 
   <!-- Bottom bar -->
   <div id="bottom-bar">
-    <input id="msg-input" type="text" placeholder="Type your message…" autocomplete="off" spellcheck="false" />
+    <input id="msg-input" type="text" placeholder="Type a message…" autocomplete="off" spellcheck="false" />
     <button id="btn-send">Send</button>
   </div>
-
 </div>
 
 <!-- Toast notification -->
 <div id="toast"></div>
 
 <script>
-  // ─── CONFIG ────────────────────────────────────────────────────────
+  // ─── CONFIG & PROFILES ──────────────────────────────────────────────
   const MYMEMORY_URL = 'https://api.mymemory.translated.net/get';
-  // ─── PEER SERVER CONFIG ────────────────────────────────────────────
-  // In production (Netlify) → use our self-hosted server on Render
-  // In local dev → use localhost
   const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-  const PEER_HOST    = isLocal ? 'localhost' : 'videochat-woi3.onrender.com';
-  const PEER_PORT    = isLocal ? 3000 : 443;
-  const PEER_SECURE  = !isLocal;
-  const PEER_PATH    = '/peerjs/'; // trailing slash required — PeerJS appends 'peerjs' directly
+  const PEER_HOST = isLocal ? 'localhost' : 'videochat-woi3.onrender.com';
+  const PEER_PORT = isLocal ? 3000 : 443;
+  const PEER_SECURE = !isLocal;
+  const PEER_PATH = '/peerjs/';
+
+  const USERS = {
+    xerxes: {
+      id: 'xerxes',
+      peerId: 'peer-xerxes',
+      name: 'Xerxes',
+      flag: '🇬🇧',
+      lang: 'en',
+      partnerId: 'malena'
+    },
+    malena: {
+      id: 'malena',
+      peerId: 'peer-malena',
+      name: 'Malena',
+      flag: '🇦🇷',
+      lang: 'es',
+      partnerId: 'xerxes'
+    }
+  };
 
   const ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -662,37 +972,63 @@
   }
 
   // ─── STATE ─────────────────────────────────────────────────────────
-  let myLang     = 'en';
-  let remoteLang = 'es';
-  let roomCode   = '';
-  let peer       = null;   // PeerJS instance
-  let conn       = null;   // PeerJS DataConnection (chat)
-  let call       = null;   // PeerJS MediaConnection (video/audio)
+  let currentUser = null;
+  let partnerUser = null;
+  let peer = null;
+  let conn = null;
+  let currentCall = null;
+  let incomingCallInstance = null;
   let localStream = null;
-  let isMicMuted     = false;
+  let isMicMuted = false;
   let isSpeakerMuted = false;
-  let isHost = false;      // true if we registered as host peer
+  let isRemoteMirrored = true;
+  let presencePollInterval = null;
+  let isPartnerOnline = false;
+  let ringAudioContext = null;
+  let ringOscillatorInterval = null;
 
-  // ─── DOM ───────────────────────────────────────────────────────────
-  const joinScreen     = document.getElementById('join-screen');
-  const callScreen     = document.getElementById('call-screen');
-  const roomInput      = document.getElementById('room-input');
-  const langSelect     = document.getElementById('lang-select');
-  const joinBtn        = document.getElementById('join-btn');
-  const remoteVideo    = document.getElementById('remote-video');
-  const selfVideo      = document.getElementById('self-video');
-  const waitingOverlay = document.getElementById('waiting-overlay');
-  const waitingCode    = document.getElementById('waiting-room-code');
-  const msgInput       = document.getElementById('msg-input');
-  const btnSend        = document.getElementById('btn-send');
-  const btnEnd         = document.getElementById('btn-end');
-  const btnMic         = document.getElementById('btn-mic');
-  const btnSpeaker     = document.getElementById('btn-speaker');
-  const messagesEl     = document.getElementById('messages-container');
-  const translLabel    = document.getElementById('translation-target-label');
-  const toastEl        = document.getElementById('toast');
+  // ─── DOM ELEMENTS ──────────────────────────────────────────────────
+  const profileSelectScreen = document.getElementById('profile-select-screen');
+  const lobbyScreen         = document.getElementById('lobby-screen');
+  const callScreen          = document.getElementById('call-screen');
 
-  // ─── TOAST ─────────────────────────────────────────────────────────
+  const myAvatarEl          = document.getElementById('my-avatar');
+  const myNameEl            = document.getElementById('my-name');
+  const switchProfileBtn    = document.getElementById('switch-profile-btn');
+
+  const partnerAvatarEl     = document.getElementById('partner-avatar');
+  const partnerNameEl       = document.getElementById('partner-name');
+  const partnerStatusEl     = document.getElementById('partner-status');
+  const partnerStatusText   = document.getElementById('partner-status-text');
+  const partnerHaloEl       = document.getElementById('partner-halo');
+  const callPartnerBtn      = document.getElementById('call-partner-btn');
+
+  const outgoingModal       = document.getElementById('outgoing-call-modal');
+  const outAvatar           = document.getElementById('out-avatar');
+  const outTitle            = document.getElementById('out-title');
+  const btnCancelCall       = document.getElementById('btn-cancel-call');
+
+  const incomingModal       = document.getElementById('incoming-call-modal');
+  const incAvatar           = document.getElementById('inc-avatar');
+  const incTitle            = document.getElementById('inc-title');
+  const btnAcceptCall       = document.getElementById('btn-accept-call');
+  const btnDeclineCall      = document.getElementById('btn-decline-call');
+
+  const remoteVideo         = document.getElementById('remote-video');
+  const selfVideo           = document.getElementById('self-video');
+  const waitingOverlay      = document.getElementById('waiting-overlay');
+  const msgInput            = document.getElementById('msg-input');
+  const btnSend             = document.getElementById('btn-send');
+  const btnEnd              = document.getElementById('btn-end');
+  const btnMic              = document.getElementById('btn-mic');
+  const btnSpeaker          = document.getElementById('btn-speaker');
+  const btnMirror           = document.getElementById('btn-mirror');
+  const messagesEl          = document.getElementById('messages-container');
+  const chatPanel           = document.getElementById('chat-panel');
+  const translLabel         = document.getElementById('translation-target-label');
+  const toastEl             = document.getElementById('toast');
+
+  // ─── TOAST NOTIFICATIONS ───────────────────────────────────────────
   let toastTimer = null;
   function showToast(msg, duration = 2800) {
     toastEl.textContent = msg;
@@ -701,36 +1037,338 @@
     toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
   }
 
-  // ─── CHAT PANEL FADE OUT LOGIC ──────────────────────────────────────
-  let fadeTimer = null;
-  const chatPanel = document.getElementById('chat-panel');
+  // ─── GENTLE RINGTONE (Web Audio API) ───────────────────────────────
+  function startRingtone() {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      ringAudioContext = new AudioContext();
 
-  function showChatPanel() {
-    chatPanel.style.opacity = '1';
-    clearTimeout(fadeTimer);
-    fadeTimer = setTimeout(() => {
-      // Fade out if no input content is active or focused
-      if (document.activeElement !== msgInput || msgInput.value.trim() === '') {
-        chatPanel.style.opacity = '0';
-      } else {
-        showChatPanel(); // keep checking
+      function playChime() {
+        if (!ringAudioContext) return;
+        const now = ringAudioContext.currentTime;
+        const osc1 = ringAudioContext.createOscillator();
+        const osc2 = ringAudioContext.createOscillator();
+        const gain = ringAudioContext.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, now); // D5
+        osc1.frequency.setValueAtTime(880.00, now + 0.18); // A5
+        osc2.frequency.setValueAtTime(440.00, now);
+
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ringAudioContext.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.7);
+        osc2.stop(now + 0.7);
       }
-    }, 6000); // 6 seconds
+
+      playChime();
+      ringOscillatorInterval = setInterval(playChime, 2200);
+    } catch (e) {
+      console.warn('Audio ringtone error:', e);
+    }
   }
 
-  // ─── TRANSLATION ───────────────────────────────────────────────────
+  function stopRingtone() {
+    if (ringOscillatorInterval) {
+      clearInterval(ringOscillatorInterval);
+      ringOscillatorInterval = null;
+    }
+    if (ringAudioContext) {
+      ringAudioContext.close().catch(() => {});
+      ringAudioContext = null;
+    }
+  }
+
+  // ─── PROFILE SELECTION ─────────────────────────────────────────────
+  function selectProfile(userId) {
+    localStorage.setItem('vc_user', userId);
+    currentUser = USERS[userId];
+    partnerUser = USERS[currentUser.partnerId];
+
+    // Update UI elements
+    myAvatarEl.textContent = currentUser.flag;
+    myNameEl.textContent   = currentUser.name;
+
+    partnerAvatarEl.textContent = partnerUser.flag;
+    partnerNameEl.textContent   = partnerUser.name;
+    callPartnerBtn.querySelector('span').textContent = `Call ${partnerUser.name}`;
+    outAvatar.textContent = partnerUser.flag;
+    incAvatar.textContent = partnerUser.flag;
+    incTitle.textContent  = `${partnerUser.name} is calling!`;
+    outTitle.textContent  = `Calling ${partnerUser.name}…`;
+
+    translLabel.textContent = currentUser.lang === 'en' ? 'English' : 'Español';
+
+    // Show lobby
+    profileSelectScreen.classList.remove('active');
+    lobbyScreen.classList.add('active');
+
+    // Connect to PeerJS server
+    initPeer();
+    startPresencePolling();
+  }
+
+  function switchProfile() {
+    localStorage.removeItem('vc_user');
+    if (presencePollInterval) clearInterval(presencePollInterval);
+    if (peer) { peer.destroy(); peer = null; }
+    lobbyScreen.classList.remove('active');
+    callScreen.classList.remove('active');
+    outgoingModal.classList.remove('active');
+    incomingModal.classList.remove('active');
+    profileSelectScreen.classList.add('active');
+  }
+
+  // ─── PRESENCE POLLING ──────────────────────────────────────────────
+  async function checkPresence() {
+    if (!currentUser || !partnerUser) return;
+    try {
+      const proto = PEER_SECURE ? 'https' : 'http';
+      const res = await fetch(`${proto}://${PEER_HOST}:${PEER_PORT}/api/presence`);
+      if (res.ok) {
+        const data = await res.json();
+        isPartnerOnline = Array.isArray(data.online) && data.online.includes(partnerUser.peerId);
+        updatePartnerStatusUI(isPartnerOnline);
+      }
+    } catch (e) {
+      // Fallback
+    }
+  }
+
+  function updatePartnerStatusUI(online) {
+    if (online) {
+      partnerStatusEl.className = 'status-badge online';
+      partnerStatusText.textContent = 'Online';
+      partnerHaloEl.className = 'pulse-halo online';
+      callPartnerBtn.style.opacity = '1';
+    } else {
+      partnerStatusEl.className = 'status-badge';
+      partnerStatusText.textContent = 'Offline';
+      partnerHaloEl.className = 'pulse-halo';
+    }
+  }
+
+  function startPresencePolling() {
+    checkPresence();
+    if (presencePollInterval) clearInterval(presencePollInterval);
+    presencePollInterval = setInterval(checkPresence, 3000);
+  }
+
+  // ─── PEERJS SETUP ──────────────────────────────────────────────────
+  function initPeer() {
+    if (peer) peer.destroy();
+    peer = new Peer(currentUser.peerId, makePeerOptions());
+
+    peer.on('open', (id) => {
+      console.log('Peer connected with ID:', id);
+      showToast(`Connected as ${currentUser.name} 💚`);
+      checkPresence();
+    });
+
+    peer.on('disconnected', () => {
+      console.log('Peer disconnected from signaling. Reconnecting...');
+      peer.reconnect();
+    });
+
+    peer.on('error', (err) => {
+      console.error('Peer error:', err);
+      if (err.type === 'unavailable-id') {
+        showToast(`Another session for ${currentUser.name} is open.`);
+      } else if (err.type !== 'disconnected') {
+        showToast(`Connection alert: ${err.message}`);
+      }
+    });
+
+    // Handle Incoming Data Connection
+    peer.on('connection', (incomingConn) => {
+      setupDataConnection(incomingConn);
+    });
+
+    // Handle Incoming Media Call
+    peer.on('call', (incomingCall) => {
+      incomingCallInstance = incomingCall;
+      incomingModal.classList.add('active');
+      startRingtone();
+    });
+  }
+
+  // ─── DATA CONNECTION SETUP ─────────────────────────────────────────
+  function setupDataConnection(c) {
+    conn = c;
+    conn.on('open', () => {
+      console.log('Data connection opened with partner.');
+    });
+
+    conn.on('data', (data) => {
+      if (data.type === 'typing') {
+        showChatPanel();
+        return;
+      }
+      if (data.type === 'call-declined') {
+        stopRingtone();
+        outgoingModal.classList.remove('active');
+        showToast(`${partnerUser.name} is busy / declined the call.`);
+        cleanUpMedia();
+        return;
+      }
+      if (data.type === 'call-cancelled') {
+        stopRingtone();
+        incomingModal.classList.remove('active');
+        showToast(`${partnerUser.name} cancelled the call.`);
+        incomingCallInstance = null;
+        return;
+      }
+      if (data.type === 'chat') {
+        handleRemoteMessage(data);
+      }
+    });
+
+    conn.on('close', () => {
+      console.log('Data connection closed.');
+    });
+  }
+
+  // ─── CALL ACTIONS (OUTGOING / INCOMING) ─────────────────────────────
+  async function startCall() {
+    outgoingModal.classList.add('active');
+    startRingtone();
+
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      selfVideo.srcObject = localStream;
+    } catch (e) {
+      stopRingtone();
+      outgoingModal.classList.remove('active');
+      showToast('Camera/microphone access is required for video calls.');
+      return;
+    }
+
+    // Connect Data Connection
+    const d = peer.connect(partnerUser.peerId, { reliable: true });
+    setupDataConnection(d);
+
+    // Make Media Call
+    const call = peer.call(partnerUser.peerId, localStream);
+    setupCallInstance(call);
+  }
+
+  function cancelCall() {
+    stopRingtone();
+    outgoingModal.classList.remove('active');
+    if (conn && conn.open) {
+      conn.send({ type: 'call-cancelled' });
+    }
+    cleanUpMedia();
+  }
+
+  async function acceptCall() {
+    stopRingtone();
+    incomingModal.classList.remove('active');
+
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      selfVideo.srcObject = localStream;
+    } catch (e) {
+      showToast('Camera/microphone access denied.');
+      declineCall();
+      return;
+    }
+
+    if (incomingCallInstance) {
+      incomingCallInstance.answer(localStream);
+      setupCallInstance(incomingCallInstance);
+      incomingCallInstance = null;
+    }
+  }
+
+  function declineCall() {
+    stopRingtone();
+    incomingModal.classList.remove('active');
+    if (incomingCallInstance) {
+      incomingCallInstance.close();
+      incomingCallInstance = null;
+    }
+    if (conn && conn.open) {
+      conn.send({ type: 'call-declined' });
+    }
+  }
+
+  function setupCallInstance(c) {
+    currentCall = c;
+
+    // Switch to active call screen
+    lobbyScreen.classList.remove('active');
+    outgoingModal.classList.remove('active');
+    incomingModal.classList.remove('active');
+    callScreen.classList.add('active');
+    waitingOverlay.classList.remove('hidden');
+
+    remoteVideo.classList.toggle('mirrored', isRemoteMirrored);
+    btnMirror.classList.toggle('active', isRemoteMirrored);
+
+    c.on('stream', (remoteStream) => {
+      stopRingtone();
+      remoteVideo.srcObject = remoteStream;
+      waitingOverlay.classList.add('hidden');
+      showToast('💚 Connected!');
+      showChatPanel();
+    });
+
+    c.on('close', () => {
+      endCall();
+    });
+
+    c.on('error', (e) => {
+      console.warn('Call stream error:', e);
+    });
+  }
+
+  function endCall() {
+    stopRingtone();
+    if (currentCall) { currentCall.close(); currentCall = null; }
+    if (conn) { conn.close(); conn = null; }
+    cleanUpMedia();
+
+    callScreen.classList.remove('active');
+    outgoingModal.classList.remove('active');
+    incomingModal.classList.remove('active');
+    lobbyScreen.classList.add('active');
+    messagesEl.innerHTML = '';
+    showToast('Call ended.');
+  }
+
+  function cleanUpMedia() {
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+      localStream = null;
+    }
+    selfVideo.srcObject = null;
+    remoteVideo.srcObject = null;
+  }
+
+  // ─── TRANSLATION & CHAT ────────────────────────────────────────────
   async function translate(text, fromLang, toLang) {
     if (fromLang === toLang || !text.trim()) return text;
     try {
-      const url = `${MYMEMORY_URL}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
+      const url  = `${MYMEMORY_URL}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
       const res  = await fetch(url);
       const data = await res.json();
       if (data.responseStatus === 200) return data.responseData.translatedText;
-    } catch (e) { console.warn('Translation failed:', e); }
+    } catch (e) {
+      console.warn('Translation failed:', e);
+    }
     return text;
   }
 
-  // ─── CHAT BUBBLES ──────────────────────────────────────────────────
   function addMessage({ mainText, originalText, isSelf }) {
     showChatPanel();
     const bubble = document.createElement('div');
@@ -738,7 +1376,7 @@
 
     const senderEl = document.createElement('div');
     senderEl.className = 'msg-sender';
-    senderEl.textContent = isSelf ? 'Me:' : 'Them:';
+    senderEl.textContent = isSelf ? currentUser.name : partnerUser.name;
 
     const mainEl = document.createElement('div');
     mainEl.className = 'msg-main';
@@ -758,204 +1396,61 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  // ─── SEND MESSAGE ──────────────────────────────────────────────────
   async function sendMessage() {
     const text = msgInput.value.trim();
     if (!text) return;
 
     if (!conn || !conn.open) {
-      showToast('⏳ Not connected yet — waiting for the other person.');
+      showToast('⏳ Waiting for chat channel to connect…');
       return;
     }
 
     showChatPanel();
     msgInput.value = '';
 
-    // Send { text, lang } to remote
-    conn.send({ text, lang: myLang });
+    // Send message packet
+    conn.send({ type: 'chat', text, lang: currentUser.lang });
 
-    // Show our message immediately (with a loading translation)
+    // Show self bubble immediately
     addMessage({ mainText: text, originalText: '…translating', isSelf: true });
 
-    // Then update with real translation
-    const translated = await translate(text, myLang, remoteLang);
-    // Update the last self bubble's original line
+    // Translate to partner language for preview
+    const translated = await translate(text, currentUser.lang, partnerUser.lang);
     const origEls = messagesEl.querySelectorAll('.msg-bubble.self .msg-original');
     if (origEls.length) origEls[origEls.length - 1].textContent = translated;
   }
 
-  // ─── HANDLE INCOMING CHAT ──────────────────────────────────────────
   async function handleRemoteMessage(data) {
     showChatPanel();
-    if (data.type === 'typing') {
-      return;
-    }
     const { text, lang: senderLang } = data;
-    remoteLang = senderLang; // keep in sync
-    const translated = await translate(text, senderLang, myLang);
+    const translated = await translate(text, senderLang, currentUser.lang);
     addMessage({ mainText: translated, originalText: text, isSelf: false });
   }
 
-  // ─── SETUP DATA CONNECTION ─────────────────────────────────────────
-  function setupConn(c) {
-    conn = c;
-    conn.on('data', handleRemoteMessage);
-    conn.on('close', () => {
-      showToast('Chat connection closed.');
-    });
-    conn.on('error', (e) => console.warn('Conn error:', e));
-  }
-
-  // ─── SETUP MEDIA CALL ──────────────────────────────────────────────
-  function setupCall(c) {
-    call = c;
-    call.on('stream', (remoteStream) => {
-      remoteVideo.srcObject = remoteStream;
-      waitingOverlay.classList.add('hidden');
-    });
-    call.on('close', () => {
-      waitingOverlay.classList.remove('hidden');
-      remoteVideo.srcObject = null;
-      showToast('Call ended by the other person.');
-    });
-    call.on('error', (e) => console.warn('Call error:', e));
-  }
-
-  // ─── PEERJS — CONNECT AS CALLER ────────────────────────────────────
-  function connectAsCallerTo(hostId) {
-    showToast('📞 Connecting…');
-    // Media call
-    const c = peer.call(hostId, localStream);
-    setupCall(c);
-
-    // Data channel
-    const d = peer.connect(hostId, { reliable: true });
-    d.on('open', () => {
-      setupConn(d);
-      showToast('💚 Connected!');
-      waitingOverlay.classList.add('hidden');
-    });
-  }
-
-  // ─── PEERJS — INIT ─────────────────────────────────────────────────
-  function initPeer() {
-    const hostPeerId = 'vc-' + roomCode; // stable host ID based on room code
-
-    // Try to register as host
-    peer = new Peer(hostPeerId, makePeerOptions());
-
-    peer.on('open', (id) => {
-      isHost = true;
-      waitingCode.textContent = roomCode;
-      // Wait for incoming connections
-    });
-
-    peer.on('disconnected', () => {
-      console.log('PeerJS disconnected from signaling server. Reconnecting...');
-      peer.reconnect();
-    });
-
-    peer.on('error', (err) => {
-      console.error('PeerJS error:', err);
-      if (err.type === 'unavailable-id') {
-        // Host already exists — become the caller
-        peer.destroy();
-        peer = new Peer(makePeerOptions());
-        peer.on('open', () => {
-          isHost = false;
-          connectAsCallerTo(hostPeerId);
-        });
-        peer.on('disconnected', () => {
-          peer.reconnect();
-        });
-        peer.on('error', (e) => {
-          console.error('Caller PeerJS error:', e);
-          if (e.type !== 'disconnected') {
-            showToast('Connection error: ' + e.message);
-          }
-        });
-      } else if (err.type === 'disconnected') {
-        console.log('Ignored transient disconnected error.');
+  // ─── CHAT PANEL FADE OUT LOGIC ──────────────────────────────────────
+  let fadeTimer = null;
+  function showChatPanel() {
+    chatPanel.style.opacity = '1';
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => {
+      if (document.activeElement !== msgInput || msgInput.value.trim() === '') {
+        chatPanel.style.opacity = '0';
       } else {
-        showToast('Error: ' + err.message);
+        showChatPanel();
       }
-    });
-
-    // Host receives incoming connections
-    peer.on('call', (incomingCall) => {
-      incomingCall.answer(localStream);
-      setupCall(incomingCall);
-      showToast('💚 Connected!');
-      waitingOverlay.classList.add('hidden');
-    });
-
-    peer.on('connection', (incomingConn) => {
-      incomingConn.on('open', () => {
-        setupConn(incomingConn);
-      });
-    });
+    }, 6000);
   }
 
-  // ─── START CALL ────────────────────────────────────────────────────
-  async function startCall() {
-    roomCode = roomInput.value.trim().toLowerCase().replace(/\s+/g, '');
-    if (!roomCode) { showToast('Please enter a room code.'); return; }
-
-    myLang     = langSelect.value;
-    remoteLang = myLang === 'en' ? 'es' : 'en';
-    updateTranslationLabel();
-
-    joinBtn.textContent = 'Connecting…';
-    joinBtn.disabled    = true;
-
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      selfVideo.srcObject = localStream;
-    } catch (e) {
-      showToast('Camera/mic access denied.');
-      joinBtn.textContent = 'Start Call';
-      joinBtn.disabled    = false;
-      return;
-    }
-
-    joinScreen.style.display  = 'none';
-    callScreen.style.display  = 'block';
-    waitingCode.textContent   = roomCode;
-
-    initPeer();
-    msgInput.focus();
-    showChatPanel();
-  }
-
-  // ─── END CALL ──────────────────────────────────────────────────────
-  function endCall() {
-    call && call.close();
-    conn && conn.close();
-    peer && peer.destroy();
-    localStream && localStream.getTracks().forEach(t => t.stop());
-
-    peer = null; call = null; conn = null; localStream = null;
-
-    callScreen.style.display  = 'none';
-    joinScreen.style.display  = 'flex';
-    joinBtn.textContent       = 'Start Call';
-    joinBtn.disabled          = false;
-    messagesEl.innerHTML      = '';
-    waitingOverlay.classList.remove('hidden');
-    remoteVideo.srcObject     = null;
-  }
-
-  // ─── MIC TOGGLE ────────────────────────────────────────────────────
+  // ─── IN-CALL CONTROLS ──────────────────────────────────────────────
   function toggleMic() {
     isMicMuted = !isMicMuted;
     if (localStream) localStream.getAudioTracks().forEach(t => { t.enabled = !isMicMuted; });
     btnMic.classList.toggle('muted', isMicMuted);
     document.getElementById('icon-mic-on').style.display  = isMicMuted ? 'none' : '';
     document.getElementById('icon-mic-off').style.display = isMicMuted ? '' : 'none';
-    showToast(isMicMuted ? '🔇 Mic muted' : '🎤 Mic on');
+    showToast(isMicMuted ? '🔇 Mic muted' : '🎤 Mic active');
   }
 
-  // ─── SPEAKER TOGGLE ────────────────────────────────────────────────
   function toggleSpeaker() {
     isSpeakerMuted = !isSpeakerMuted;
     remoteVideo.muted = isSpeakerMuted;
@@ -965,17 +1460,6 @@
     showToast(isSpeakerMuted ? '🔇 Speaker muted' : '🔊 Speaker on');
   }
 
-  // ─── TRANSLATION LABEL ─────────────────────────────────────────────
-  function updateTranslationLabel() {
-    translLabel.textContent = myLang === 'en' ? 'English' : 'Español';
-  }
-
-  // ─── MIRROR TOGGLE ─────────────────────────────────────────────────
-  let isRemoteMirrored = true; // mirrored by default
-  const btnMirror = document.getElementById('btn-mirror');
-  remoteVideo.classList.add('mirrored');
-  btnMirror.classList.add('active');
-
   function toggleMirror() {
     isRemoteMirrored = !isRemoteMirrored;
     remoteVideo.classList.toggle('mirrored', isRemoteMirrored);
@@ -984,8 +1468,19 @@
   }
 
   // ─── EVENT LISTENERS ───────────────────────────────────────────────
-  joinBtn.addEventListener('click', startCall);
-  roomInput.addEventListener('keydown', e => { if (e.key === 'Enter') startCall(); });
+  // Profile Buttons
+  document.querySelectorAll('.profile-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectProfile(btn.dataset.user);
+    });
+  });
+
+  switchProfileBtn.addEventListener('click', switchProfile);
+  callPartnerBtn.addEventListener('click', startCall);
+  btnCancelCall.addEventListener('click', cancelCall);
+  btnAcceptCall.addEventListener('click', acceptCall);
+  btnDeclineCall.addEventListener('click', declineCall);
+
   btnSend.addEventListener('click', sendMessage);
   msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
   btnEnd.addEventListener('click', endCall);
@@ -999,17 +1494,29 @@
       conn.send({ type: 'typing' });
     }
   });
+
   msgInput.addEventListener('focus', () => {
     showChatPanel();
   });
 
-  // Tap anywhere on the call screen to reveal messages (without forcing the keyboard to open)
+  // Tap anywhere on the call screen to reveal messages
   callScreen.addEventListener('click', () => {
     showChatPanel();
   });
+
   callScreen.addEventListener('touchstart', () => {
     showChatPanel();
   }, { passive: true });
+
+  // ─── INITIALIZATION ON LOAD ────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedUser = localStorage.getItem('vc_user');
+    if (savedUser && USERS[savedUser]) {
+      selectProfile(savedUser);
+    } else {
+      profileSelectScreen.classList.add('active');
+    }
+  });
 </script>
 </body>
 </html>
