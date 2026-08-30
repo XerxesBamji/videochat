@@ -111,22 +111,15 @@
     }
 
     .profile-avatar {
-      width: 76px;
-      height: 76px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      overflow: hidden;
+      background: rgba(255,255,255,0.08);
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 2.5px solid rgba(255,45,120,0.4);
-      box-shadow: 0 6px 20px rgba(255,45,120,0.25);
-      background: #181824;
-    }
-
-    .profile-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      font-size: 2rem;
+      border: 2px solid rgba(255,255,255,0.1);
     }
 
     .profile-name {
@@ -165,27 +158,9 @@
     .user-pill {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       font-size: 0.88rem;
       font-weight: 500;
-    }
-
-    .topbar-avatar {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      overflow: hidden;
-      border: 1.5px solid rgba(255,45,120,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #181824;
-    }
-
-    .topbar-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
     }
 
     .switch-btn {
@@ -221,31 +196,24 @@
 
     .partner-avatar-wrapper {
       position: relative;
-      width: 116px;
-      height: 116px;
+      width: 110px;
+      height: 110px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .partner-avatar {
-      width: 104px;
-      height: 104px;
+      width: 96px;
+      height: 96px;
       border-radius: 50%;
-      overflow: hidden;
-      border: 3px solid rgba(255,45,120,0.5);
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,45,120,0.15));
+      border: 3px solid rgba(255,255,255,0.15);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 32px rgba(255,45,120,0.35);
-      background: #181824;
+      font-size: 3.2rem;
       z-index: 2;
-    }
-
-    .partner-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
     }
 
     .pulse-halo {
@@ -758,17 +726,13 @@
   <h1 class="app-title">Who are you?</h1>
   <div class="profile-card-container">
     <div class="profile-btn" data-user="xerxes">
-      <div class="profile-avatar">
-        <img src="assets/xerxes.jpg" alt="Xerxes" />
-      </div>
-      <div class="profile-name">Xerxes 🇬🇧</div>
+      <div class="profile-avatar">🇬🇧</div>
+      <div class="profile-name">Xerxes</div>
       <div class="profile-sub">United Kingdom</div>
     </div>
     <div class="profile-btn" data-user="malena">
-      <div class="profile-avatar">
-        <img src="assets/malena.jpg" alt="Malena" />
-      </div>
-      <div class="profile-name">Malena 🇦🇷</div>
+      <div class="profile-avatar">🇦🇷</div>
+      <div class="profile-name">Malena</div>
       <div class="profile-sub">Argentina</div>
     </div>
   </div>
@@ -778,7 +742,7 @@
 <div id="lobby-screen" class="screen">
   <div class="lobby-topbar">
     <div class="user-pill">
-      <div class="topbar-avatar"><img id="my-avatar" src="assets/xerxes.jpg" alt="You" /></div>
+      <span id="my-avatar">🇬🇧</span>
       <span>Hi, <strong id="my-name">Xerxes</strong></span>
     </div>
     <button id="switch-profile-btn" class="switch-btn">Switch Profile</button>
@@ -787,7 +751,7 @@
   <div class="partner-card">
     <div class="partner-avatar-wrapper">
       <div id="partner-halo" class="pulse-halo"></div>
-      <div class="partner-avatar"><img id="partner-avatar" src="assets/malena.jpg" alt="Partner" /></div>
+      <div id="partner-avatar" class="partner-avatar">🇦🇷</div>
     </div>
     <div>
       <div id="partner-name" class="partner-title">Malena</div>
@@ -815,7 +779,7 @@
   <div class="call-dialog">
     <div class="partner-avatar-wrapper">
       <div class="pulse-halo online"></div>
-      <div class="partner-avatar"><img id="out-avatar" src="assets/malena.jpg" alt="Partner" /></div>
+      <div id="out-avatar" class="partner-avatar">🇦🇷</div>
     </div>
     <div>
       <h2 id="out-title">Calling Malena…</h2>
@@ -832,7 +796,7 @@
   <div class="call-dialog">
     <div class="partner-avatar-wrapper">
       <div class="pulse-halo online"></div>
-      <div class="partner-avatar"><img id="inc-avatar" src="assets/xerxes.jpg" alt="Partner" /></div>
+      <div id="inc-avatar" class="partner-avatar">🇬🇧</div>
     </div>
     <div>
       <h2 id="inc-title">Xerxes is calling!</h2>
@@ -941,7 +905,6 @@
       id: 'xerxes',
       peerId: 'peer-xerxes',
       name: 'Xerxes',
-      avatar: 'assets/xerxes.jpg',
       flag: '🇬🇧',
       lang: 'en',
       partnerId: 'malena'
@@ -950,7 +913,6 @@
       id: 'malena',
       peerId: 'peer-malena',
       name: 'Malena',
-      avatar: 'assets/malena.jpg',
       flag: '🇦🇷',
       lang: 'es',
       partnerId: 'xerxes'
@@ -1167,15 +1129,15 @@
     currentUser = USERS[userId];
     partnerUser = USERS[currentUser.partnerId];
 
-    // Update UI elements with avatar images
-    myAvatarEl.src         = currentUser.avatar;
+    // Update UI elements
+    myAvatarEl.textContent = currentUser.flag;
     myNameEl.textContent   = currentUser.name;
 
-    partnerAvatarEl.src         = partnerUser.avatar;
-    partnerNameEl.textContent   = `${partnerUser.name} ${partnerUser.flag}`;
+    partnerAvatarEl.textContent = partnerUser.flag;
+    partnerNameEl.textContent   = partnerUser.name;
     callPartnerBtn.querySelector('span').textContent = `Call ${partnerUser.name}`;
-    outAvatar.src         = partnerUser.avatar;
-    incAvatar.src         = partnerUser.avatar;
+    outAvatar.textContent = partnerUser.flag;
+    incAvatar.textContent = partnerUser.flag;
     incTitle.textContent  = `${partnerUser.name} is calling!`;
     outTitle.textContent  = `Calling ${partnerUser.name}…`;
 
