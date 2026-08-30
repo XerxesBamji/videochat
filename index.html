@@ -996,6 +996,105 @@
   const btnAcceptCall       = document.getElementById('btn-accept-call');
   const btnDeclineCall      = document.getElementById('btn-decline-call');
 
+  // ─── AUDIO & RINGTONE SYSTEM (Web Audio API) ──────────────────────
+  let globalAudioCtx = null;
+  let ringInterval = null;
+
+  function getAudioContext() {
+    if (!globalAudioCtx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) globalAudioCtx = new AudioCtx();
+    }
+    if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+      globalAudioCtx.resume().catch(() => {});
+    }
+    return globalAudioCtx;
+  }
+
+  // Pre-unlock audio on any user gesture across the app
+  ['click', 'touchstart', 'touchend', 'keydown'].forEach(evt => {
+    window.addEventListener(evt, () => {
+      getAudioContext();
+    }, { passive: true });
+  });
+
+  function startRingtone(type = 'incoming') {
+    stopRingtone();
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    if (type === 'incoming' && navigator.vibrate) {
+      try { navigator.vibrate([400, 250, 400, 250, 800]); } catch(e) {}
+    }
+
+    function playPattern() {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      if (type === 'incoming') {
+        // Cheerful marimba / melodic bell chime (E5, G#5, B5, E6)
+        const notes = [659.25, 830.61, 987.77, 1318.51];
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + i * 0.14);
+
+          gain.gain.setValueAtTime(0.12, now + i * 0.14);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.14 + 0.45);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(now + i * 0.14);
+          osc.stop(now + i * 0.14 + 0.45);
+        });
+      } else {
+        // Outgoing: Gentle dial tone chord (440Hz + 480Hz)
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(440, now);
+        osc2.frequency.setValueAtTime(480, now);
+
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.setValueAtTime(0.06, now + 1.2);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.35);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 1.35);
+        osc2.stop(now + 1.35);
+      }
+    }
+
+    playPattern();
+    ringInterval = setInterval(() => {
+      playPattern();
+      if (type === 'incoming' && navigator.vibrate) {
+        try { navigator.vibrate([400, 250, 400, 250, 800]); } catch(e) {}
+      }
+    }, type === 'incoming' ? 2200 : 3500);
+  }
+
+  function stopRingtone() {
+    if (ringInterval) {
+      clearInterval(ringInterval);
+      ringInterval = null;
+    }
+    if (navigator.vibrate) {
+      try { navigator.vibrate(0); } catch(e) {}
+    }
+  }
+
   const remoteVideo         = document.getElementById('remote-video');
   const selfVideo           = document.getElementById('self-video');
   const waitingOverlay      = document.getElementById('waiting-overlay');
@@ -1019,56 +1118,7 @@
     toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
   }
 
-  // ─── GENTLE RINGTONE (Web Audio API) ───────────────────────────────
-  function startRingtone() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      ringAudioContext = new AudioContext();
 
-      function playChime() {
-        if (!ringAudioContext) return;
-        const now = ringAudioContext.currentTime;
-        const osc1 = ringAudioContext.createOscillator();
-        const osc2 = ringAudioContext.createOscillator();
-        const gain = ringAudioContext.createGain();
-
-        osc1.type = 'sine';
-        osc2.type = 'sine';
-        osc1.frequency.setValueAtTime(587.33, now); // D5
-        osc1.frequency.setValueAtTime(880.00, now + 0.18); // A5
-        osc2.frequency.setValueAtTime(440.00, now);
-
-        gain.gain.setValueAtTime(0.08, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(ringAudioContext.destination);
-
-        osc1.start(now);
-        osc2.start(now);
-        osc1.stop(now + 0.7);
-        osc2.stop(now + 0.7);
-      }
-
-      playChime();
-      ringOscillatorInterval = setInterval(playChime, 2200);
-    } catch (e) {
-      console.warn('Audio ringtone error:', e);
-    }
-  }
-
-  function stopRingtone() {
-    if (ringOscillatorInterval) {
-      clearInterval(ringOscillatorInterval);
-      ringOscillatorInterval = null;
-    }
-    if (ringAudioContext) {
-      ringAudioContext.close().catch(() => {});
-      ringAudioContext = null;
-    }
-  }
 
   // ─── PROFILE SELECTION ─────────────────────────────────────────────
   function selectProfile(userId) {
@@ -1179,7 +1229,7 @@
     peer.on('call', (incomingCall) => {
       incomingCallInstance = incomingCall;
       incomingModal.classList.add('active');
-      startRingtone();
+      startRingtone('incoming');
     });
   }
 
@@ -1222,7 +1272,7 @@
   // ─── CALL ACTIONS (OUTGOING / INCOMING) ─────────────────────────────
   async function startCall() {
     outgoingModal.classList.add('active');
-    startRingtone();
+    startRingtone('outgoing');
 
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
