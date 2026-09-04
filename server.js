@@ -26,7 +26,8 @@ const onlinePeers = new Set();
 const peerServer = ExpressPeerServer(server, {
   path: '/',
   allow_discovery: false,
-  proxied: process.env.NODE_ENV === 'production'
+  proxied: process.env.NODE_ENV === 'production',
+  alive_timeout: 30000
 });
 
 app.use('/peerjs', peerServer);

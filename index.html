@@ -35,6 +35,119 @@
       justify-content: center;
     }
 
+    /* ─── 0. SERVER WAKE-UP / LOADING SCREEN ─────────── */
+    #server-loading-screen {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 50%, #20092e 0%, #07070a 80%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 24px;
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+
+    #server-loading-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .server-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      padding: 40px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+      max-width: 390px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+      text-align: center;
+    }
+
+    .server-icon-wrap {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .server-icon-inner {
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,45,120,0.22), rgba(199,32,168,0.25));
+      border: 2px solid rgba(255,45,120,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      z-index: 2;
+      box-shadow: 0 0 30px rgba(255,45,120,0.3);
+    }
+
+    .server-pulse-wave {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--pink);
+      animation: server-wave 2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+    }
+
+    @keyframes server-wave {
+      0% { transform: scale(0.85); opacity: 0.8; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .server-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ffffff 50%, var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .server-msg {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      max-width: 320px;
+      min-height: 44px;
+    }
+
+    .server-bar-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .server-bar-fill {
+      position: absolute;
+      height: 100%;
+      width: 35%;
+      background: linear-gradient(90deg, transparent, var(--pink), transparent);
+      border-radius: 99px;
+      animation: server-bar-anim 1.6s infinite ease-in-out;
+    }
+
+    @keyframes server-bar-anim {
+      0% { left: -35%; }
+      100% { left: 100%; }
+    }
+
     /* ─── SCREENS ─────────────────────────────────────── */
     .screen {
       display: none;
@@ -161,6 +274,54 @@
       gap: 8px;
       font-size: 0.88rem;
       font-weight: 500;
+    }
+
+    .line-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: var(--text-dim);
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+
+    .line-status-pill .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #888;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .line-status-pill.connecting .status-dot {
+      background: #f59e0b;
+      box-shadow: 0 0 8px #f59e0b;
+      animation: pulse-dot 1.2s infinite ease-in-out;
+    }
+
+    .line-status-pill.connecting {
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .line-status-pill.online .status-dot {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    .line-status-pill.online {
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
     }
 
     .switch-btn {
@@ -298,6 +459,26 @@
 
     #call-partner-btn:active {
       transform: translateY(0);
+    }
+
+    #call-partner-btn:disabled,
+    #call-partner-btn.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+      box-shadow: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-dim);
+      transform: none !important;
+    }
+
+    #call-partner-btn.ready {
+      background: linear-gradient(135deg, #10B981, #059669);
+      box-shadow: 0 6px 28px rgba(16, 185, 129, 0.45);
+    }
+
+    #call-partner-btn.ready:hover {
+      box-shadow: 0 8px 36px rgba(16, 185, 129, 0.65);
     }
 
     .lobby-hint {
@@ -720,6 +901,24 @@
 </head>
 <body>
 
+<!-- ══════════════ 0. SERVER WAKE-UP / LOADING SCREEN ══════════════ -->
+<div id="server-loading-screen" class="hidden">
+  <div class="title-badge">Private Video Call</div>
+  <div class="server-card">
+    <div class="server-icon-wrap">
+      <div class="server-pulse-wave"></div>
+      <div class="server-icon-inner">💚</div>
+    </div>
+    <div class="server-title">Connecting to Server…</div>
+    <p id="server-loading-msg" class="server-msg">
+      Checking server status…
+    </p>
+    <div class="server-bar-track">
+      <div class="server-bar-fill"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════ 1. PROFILE SELECTION SCREEN ══════════════ -->
 <div id="profile-select-screen" class="screen">
   <div class="title-badge">Private Video Call</div>
@@ -745,6 +944,10 @@
       <span id="my-avatar">🇬🇧</span>
       <span>Hi, <strong id="my-name">Xerxes</strong></span>
     </div>
+    <div id="my-line-status" class="line-status-pill connecting">
+      <span class="status-dot"></span>
+      <span id="my-line-status-text">Connecting…</span>
+    </div>
     <button id="switch-profile-btn" class="switch-btn">Switch Profile</button>
   </div>
 
@@ -761,11 +964,11 @@
       </div>
     </div>
 
-    <button id="call-partner-btn">
+    <button id="call-partner-btn" class="disabled" disabled>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
         <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.12-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
       </svg>
-      <span>Call Malena</span>
+      <span id="call-partner-btn-text">Connecting your line…</span>
     </button>
   </div>
 
@@ -951,6 +1154,7 @@
       port: PEER_PORT,
       secure: PEER_SECURE,
       path: PEER_PATH,
+      token: currentUser ? `vc-token-${currentUser.id}` : undefined,
       debug: 0,
       config: { iceServers: ICE_SERVERS }
     };
@@ -969,16 +1173,24 @@
   let isRemoteMirrored = true;
   let presencePollInterval = null;
   let isPartnerOnline = false;
+  let isLocalPeerReady = false;
+  let peerReconnectTimeout = null;
+  let outgoingCallTimeout = null;
   let ringAudioContext = null;
   let ringOscillatorInterval = null;
 
   // ─── DOM ELEMENTS ──────────────────────────────────────────────────
+  const serverLoadingScreen = document.getElementById('server-loading-screen');
+  const serverLoadingMsg    = document.getElementById('server-loading-msg');
+
   const profileSelectScreen = document.getElementById('profile-select-screen');
   const lobbyScreen         = document.getElementById('lobby-screen');
   const callScreen          = document.getElementById('call-screen');
 
   const myAvatarEl          = document.getElementById('my-avatar');
   const myNameEl            = document.getElementById('my-name');
+  const myLineStatusEl      = document.getElementById('my-line-status');
+  const myLineStatusText    = document.getElementById('my-line-status-text');
   const switchProfileBtn    = document.getElementById('switch-profile-btn');
 
   const partnerAvatarEl     = document.getElementById('partner-avatar');
@@ -987,6 +1199,7 @@
   const partnerStatusText   = document.getElementById('partner-status-text');
   const partnerHaloEl       = document.getElementById('partner-halo');
   const callPartnerBtn      = document.getElementById('call-partner-btn');
+  const callPartnerBtnText  = document.getElementById('call-partner-btn-text');
 
   const outgoingModal       = document.getElementById('outgoing-call-modal');
   const outAvatar           = document.getElementById('out-avatar');
@@ -1135,13 +1348,16 @@
 
     partnerAvatarEl.textContent = partnerUser.flag;
     partnerNameEl.textContent   = partnerUser.name;
-    callPartnerBtn.querySelector('span').textContent = `Call ${partnerUser.name}`;
     outAvatar.textContent = partnerUser.flag;
     incAvatar.textContent = partnerUser.flag;
     incTitle.textContent  = `${partnerUser.name} is calling!`;
     outTitle.textContent  = `Calling ${partnerUser.name}…`;
 
     translLabel.textContent = currentUser.lang === 'en' ? 'English' : 'Español';
+
+    isLocalPeerReady = false;
+    isPartnerOnline = false;
+    updateCallReadinessUI();
 
     // Show lobby
     profileSelectScreen.classList.remove('active');
@@ -1155,7 +1371,17 @@
   function switchProfile() {
     localStorage.removeItem('vc_user');
     if (presencePollInterval) clearInterval(presencePollInterval);
-    if (peer) { peer.destroy(); peer = null; }
+    if (peerReconnectTimeout) clearTimeout(peerReconnectTimeout);
+    if (outgoingCallTimeout) clearTimeout(outgoingCallTimeout);
+    if (peer) {
+      try { peer.destroy(); } catch (e) {}
+      peer = null;
+    }
+    isLocalPeerReady = false;
+    isPartnerOnline = false;
+    currentUser = null;
+    partnerUser = null;
+
     lobbyScreen.classList.remove('active');
     callScreen.classList.remove('active');
     outgoingModal.classList.remove('active');
@@ -1163,12 +1389,43 @@
     profileSelectScreen.classList.add('active');
   }
 
+  // ─── CALL READINESS & LINE STATUS UI ───────────────────────────────
+  function updateCallReadinessUI() {
+    if (!currentUser || !partnerUser) return;
+
+    // 1. My line status pill in lobby topbar
+    if (myLineStatusEl && myLineStatusText) {
+      if (isLocalPeerReady) {
+        myLineStatusEl.className = 'line-status-pill online';
+        myLineStatusText.textContent = 'Line: Ready 🟢';
+      } else {
+        myLineStatusEl.className = 'line-status-pill connecting';
+        myLineStatusText.textContent = 'Connecting… 🟡';
+      }
+    }
+
+    // 2. Call partner button
+    if (!isLocalPeerReady) {
+      callPartnerBtn.disabled = true;
+      callPartnerBtn.className = 'disabled';
+      if (callPartnerBtnText) callPartnerBtnText.textContent = 'Connecting your line…';
+    } else if (!isPartnerOnline) {
+      callPartnerBtn.disabled = true;
+      callPartnerBtn.className = 'disabled';
+      if (callPartnerBtnText) callPartnerBtnText.textContent = `${partnerUser.name} is Offline`;
+    } else {
+      callPartnerBtn.disabled = false;
+      callPartnerBtn.className = 'ready';
+      if (callPartnerBtnText) callPartnerBtnText.textContent = `Call ${partnerUser.name}`;
+    }
+  }
+
   // ─── PRESENCE POLLING ──────────────────────────────────────────────
   async function checkPresence() {
     if (!currentUser || !partnerUser) return;
     try {
       const proto = PEER_SECURE ? 'https' : 'http';
-      const res = await fetch(`${proto}://${PEER_HOST}:${PEER_PORT}/api/presence`);
+      const res = await fetch(`${proto}://${PEER_HOST}:${PEER_PORT}/api/presence`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         isPartnerOnline = Array.isArray(data.online) && data.online.includes(partnerUser.peerId);
@@ -1180,16 +1437,17 @@
   }
 
   function updatePartnerStatusUI(online) {
+    isPartnerOnline = !!online;
     if (online) {
       partnerStatusEl.className = 'status-badge online';
       partnerStatusText.textContent = 'Online';
       partnerHaloEl.className = 'pulse-halo online';
-      callPartnerBtn.style.opacity = '1';
     } else {
       partnerStatusEl.className = 'status-badge';
       partnerStatusText.textContent = 'Offline';
       partnerHaloEl.className = 'pulse-halo';
     }
+    updateCallReadinessUI();
   }
 
   function startPresencePolling() {
@@ -1200,26 +1458,58 @@
 
   // ─── PEERJS SETUP ──────────────────────────────────────────────────
   function initPeer() {
-    if (peer) peer.destroy();
-    peer = new Peer(currentUser.peerId, makePeerOptions());
+    if (peerReconnectTimeout) {
+      clearTimeout(peerReconnectTimeout);
+      peerReconnectTimeout = null;
+    }
+    if (peer) {
+      try { peer.destroy(); } catch (e) {}
+      peer = null;
+    }
+
+    isLocalPeerReady = false;
+    updateCallReadinessUI();
+
+    try {
+      peer = new Peer(currentUser.peerId, makePeerOptions());
+    } catch (err) {
+      console.error('Failed to create Peer instance:', err);
+      peerReconnectTimeout = setTimeout(initPeer, 2000);
+      return;
+    }
 
     peer.on('open', (id) => {
       console.log('Peer connected with ID:', id);
+      isLocalPeerReady = true;
+      updateCallReadinessUI();
       showToast(`Connected as ${currentUser.name} 💚`);
       checkPresence();
     });
 
     peer.on('disconnected', () => {
       console.log('Peer disconnected from signaling. Reconnecting...');
-      peer.reconnect();
+      isLocalPeerReady = false;
+      updateCallReadinessUI();
+      try {
+        peer.reconnect();
+      } catch (e) {
+        peerReconnectTimeout = setTimeout(initPeer, 2000);
+      }
     });
 
     peer.on('error', (err) => {
       console.error('Peer error:', err);
+      isLocalPeerReady = false;
+      updateCallReadinessUI();
+
       if (err.type === 'unavailable-id') {
-        showToast(`Another session for ${currentUser.name} is open.`);
+        showToast(`Syncing session for ${currentUser.name}…`, 2000);
+        peerReconnectTimeout = setTimeout(initPeer, 1800);
+      } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error' || err.type === 'socket-closed') {
+        showToast('Signaling server reconnecting…', 2500);
+        peerReconnectTimeout = setTimeout(initPeer, 2500);
       } else if (err.type !== 'disconnected') {
-        showToast(`Connection alert: ${err.message}`);
+        showToast(`Connection notice: ${err.type || err.message}`);
       }
     });
 
@@ -1321,6 +1611,12 @@
 
   // ─── CALL ACTIONS (OUTGOING / INCOMING) ─────────────────────────────
   async function startCall() {
+    if (!isLocalPeerReady || !peer || !peer.open || peer.destroyed) {
+      showToast('Connecting your line to the server first, please wait…');
+      initPeer();
+      return;
+    }
+
     outgoingModal.classList.add('active');
     startRingtone('outgoing');
 
@@ -1341,9 +1637,19 @@
     // Make Media Call
     const call = peer.call(partnerUser.peerId, localStream);
     setupCallInstance(call);
+
+    // 30s timeout if partner doesn't answer or their app is inactive
+    clearTimeout(outgoingCallTimeout);
+    outgoingCallTimeout = setTimeout(() => {
+      if (outgoingModal.classList.contains('active')) {
+        cancelCall();
+        showToast(`${partnerUser.name} didn't answer. They might be away or offline.`, 4500);
+      }
+    }, 30000);
   }
 
   function cancelCall() {
+    clearTimeout(outgoingCallTimeout);
     stopRingtone();
     outgoingModal.classList.remove('active');
     if (conn && conn.open) {
@@ -1400,6 +1706,7 @@
     boostVideoBitrate(c);
 
     c.on('stream', (remoteStream) => {
+      clearTimeout(outgoingCallTimeout);
       stopRingtone();
       remoteVideo.srcObject = remoteStream;
       waitingOverlay.classList.add('hidden');
@@ -1414,10 +1721,14 @@
 
     c.on('error', (e) => {
       console.warn('Call stream error:', e);
+      clearTimeout(outgoingCallTimeout);
+      endCall();
+      showToast('Call connection ended or failed.');
     });
   }
 
   function endCall() {
+    clearTimeout(outgoingCallTimeout);
     stopRingtone();
     if (currentCall) { currentCall.close(); currentCall = null; }
     if (conn) { conn.close(); conn = null; }
@@ -1428,6 +1739,7 @@
     incomingModal.classList.remove('active');
     lobbyScreen.classList.add('active');
     messagesEl.innerHTML = '';
+    updateCallReadinessUI();
     showToast('Call ended.');
   }
 
@@ -1593,8 +1905,74 @@
     showChatPanel();
   }, { passive: true });
 
+  // ─── SERVER WAKE-UP VERIFICATION ───────────────────────────────────
+  let isServerAwake = false;
+
+  async function checkServerHealth() {
+    const proto = PEER_SECURE ? 'https' : 'http';
+    const url = `${proto}://${PEER_HOST}:${PEER_PORT}/health`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    try {
+      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        return data && data.status === 'ok';
+      }
+    } catch (e) {
+      clearTimeout(timer);
+    }
+    return false;
+  }
+
+  async function ensureServerReady() {
+    // Quick check: if server is already awake, don't show loading screen
+    const alreadyAwake = await checkServerHealth();
+    if (alreadyAwake) {
+      isServerAwake = true;
+      if (serverLoadingScreen) {
+        serverLoadingScreen.classList.add('hidden');
+        setTimeout(() => serverLoadingScreen.remove(), 400);
+      }
+      return;
+    }
+
+    // Server is sleeping / cold-starting: reveal loading screen
+    if (serverLoadingScreen) {
+      serverLoadingScreen.classList.remove('hidden');
+    }
+
+    let elapsed = 0;
+    const elapsedInterval = setInterval(() => {
+      elapsed++;
+      if (serverLoadingMsg) {
+        serverLoadingMsg.textContent = `Waking up private server (~${elapsed}s elapsed)… Render free tier takes 15–25s after sleep.`;
+      }
+    }, 1000);
+
+    while (!isServerAwake) {
+      const ok = await checkServerHealth();
+      if (ok) {
+        isServerAwake = true;
+        clearInterval(elapsedInterval);
+        if (serverLoadingMsg) {
+          serverLoadingMsg.textContent = '✅ Server is ready! Connecting line…';
+        }
+        await new Promise(r => setTimeout(r, 600));
+        if (serverLoadingScreen) {
+          serverLoadingScreen.classList.add('hidden');
+          setTimeout(() => serverLoadingScreen.remove(), 400);
+        }
+        break;
+      }
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+
   // ─── INITIALIZATION ON LOAD ────────────────────────────────────────
-  window.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('DOMContentLoaded', async () => {
+    await ensureServerReady();
     const savedUser = localStorage.getItem('vc_user');
     if (savedUser && USERS[savedUser]) {
       selectProfile(savedUser);
