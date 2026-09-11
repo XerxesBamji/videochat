@@ -2074,11 +2074,6 @@
     await ensureServerReady();
     const savedUser = sessionStorage.getItem('vc_user');
     if (savedUser && USERS[savedUser]) {
-      // Wait 2500ms after page load before reconnecting. This is slightly
-      // longer than the server's alive_timeout (2000ms), so the previous
-      // tab's peer slot is guaranteed to be freed before we try to reuse
-      // the same peer ID. Prevents the 'unavailable-id' loop on refresh.
-      await new Promise(r => setTimeout(r, 2500));
       selectProfile(savedUser);
     } else {
       profileSelectScreen.classList.add('active');
