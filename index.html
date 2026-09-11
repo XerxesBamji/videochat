@@ -1132,7 +1132,8 @@
   const USERS = {
     xerxes: {
       id: 'xerxes',
-      peerId: 'peer-xerxes',
+      peerIdPrefix: 'peer-xerxes',
+      peerId: 'peer-xerxes',   // will be made unique in selectProfile()
       name: 'Xerxes',
       flag: '🇬🇧',
       lang: 'en',
@@ -1140,7 +1141,8 @@
     },
     malena: {
       id: 'malena',
-      peerId: 'peer-malena',
+      peerIdPrefix: 'peer-malena',
+      peerId: 'peer-malena',   // will be made unique in selectProfile()
       name: 'Malena',
       flag: '🇦🇷',
       lang: 'es',
@@ -1368,8 +1370,23 @@
   // ─── PROFILE SELECTION ─────────────────────────────────────────────
   function selectProfile(userId) {
     sessionStorage.setItem('vc_user', userId);
-    currentUser = USERS[userId];
-    partnerUser = USERS[currentUser.partnerId];
+    // Deep-copy the user object so we can add session-specific properties
+    currentUser = Object.assign({}, USERS[userId]);
+    partnerUser = Object.assign({}, USERS[currentUser.partnerId]);
+
+    // Generate a unique peer ID for this page load so there is never a
+    // conflict with a previous session's still-registered peer ID.
+    // The suffix is stored in sessionStorage so a refresh reuses it
+    // (same session = same ID), but closing and reopening the tab
+    // gets a brand-new suffix.
+    const suffixKey = `vc_peer_suffix_${userId}`;
+    let suffix = sessionStorage.getItem(suffixKey);
+    if (!suffix) {
+      suffix = Date.now().toString(36); // e.g. "lz4k2a1"
+      sessionStorage.setItem(suffixKey, suffix);
+    }
+    currentUser.peerId = `${currentUser.peerIdPrefix}-${suffix}`;
+    console.log('[Profile] Using peer ID:', currentUser.peerId);
 
     // Update UI elements
     myAvatarEl.textContent = currentUser.flag;
@@ -1399,6 +1416,8 @@
 
   function switchProfile() {
     sessionStorage.removeItem('vc_user');
+    // Clear the peer suffix so the next login gets a fresh one
+    if (currentUser) sessionStorage.removeItem(`vc_peer_suffix_${currentUser.id}`);
     stopPeerHeartbeat();
     if (presencePollInterval) clearInterval(presencePollInterval);
     if (peerReconnectTimeout) clearTimeout(peerReconnectTimeout);
@@ -1510,7 +1529,13 @@
       const res = await fetch(`${proto}://${PEER_HOST}:${PEER_PORT}/api/presence`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        isPartnerOnline = Array.isArray(data.online) && data.online.includes(partnerUser.peerId);
+        // Match by prefix so any session suffix works (e.g. peer-malena-abc123)
+        const partnerPrefix = partnerUser.peerIdPrefix;
+        const matchingId = Array.isArray(data.online)
+          ? data.online.find(id => id.startsWith(partnerPrefix + '-') || id === partnerPrefix)
+          : null;
+        isPartnerOnline = !!matchingId;
+        if (matchingId) partnerUser.peerId = matchingId; // keep live peer ID in sync
         updatePartnerStatusUI(isPartnerOnline);
       }
     } catch (e) {
