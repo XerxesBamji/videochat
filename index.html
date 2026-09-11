@@ -481,8 +481,33 @@
       box-shadow: 0 8px 36px rgba(16, 185, 129, 0.65);
     }
 
+    #retry-connection-btn {
+      display: none;
+      margin-top: 6px;
+      background: transparent;
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #fbbf24;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 7px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    #retry-connection-btn:hover {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: #fbbf24;
+    }
+
+    #retry-connection-btn.visible {
+      display: inline-block;
+    }
+
     .lobby-hint {
       display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 8px;
       color: var(--text-dim);
@@ -974,6 +999,7 @@
 
   <div class="lobby-hint">
     <span>✨ Live English &amp; Spanish auto-translation ready</span>
+    <button id="retry-connection-btn" onclick="retryConnection()">🔄 Retry Connection</button>
   </div>
 </div>
 
@@ -1176,6 +1202,8 @@
   let isLocalPeerReady = false;
   let peerReconnectTimeout = null;
   let outgoingCallTimeout = null;
+  let peerHeartbeatInterval = null;
+  let connectingStuckTimer = null;
   let ringAudioContext = null;
   let ringOscillatorInterval = null;
 
@@ -1191,6 +1219,7 @@
   const myNameEl            = document.getElementById('my-name');
   const myLineStatusEl      = document.getElementById('my-line-status');
   const myLineStatusText    = document.getElementById('my-line-status-text');
+  const retryConnectionBtn  = document.getElementById('retry-connection-btn');
   const switchProfileBtn    = document.getElementById('switch-profile-btn');
 
   const partnerAvatarEl     = document.getElementById('partner-avatar');
@@ -1370,9 +1399,11 @@
 
   function switchProfile() {
     localStorage.removeItem('vc_user');
+    stopPeerHeartbeat();
     if (presencePollInterval) clearInterval(presencePollInterval);
     if (peerReconnectTimeout) clearTimeout(peerReconnectTimeout);
     if (outgoingCallTimeout) clearTimeout(outgoingCallTimeout);
+    if (connectingStuckTimer) clearTimeout(connectingStuckTimer);
     if (peer) {
       try { peer.destroy(); } catch (e) {}
       peer = null;
@@ -1389,18 +1420,69 @@
     profileSelectScreen.classList.add('active');
   }
 
+  // ─── RETRY CONNECTION (manual button) ──────────────────────────────
+  function retryConnection() {
+    if (!currentUser) return;
+    if (retryConnectionBtn) retryConnectionBtn.classList.remove('visible');
+    if (connectingStuckTimer) clearTimeout(connectingStuckTimer);
+    showToast('Reconnecting…');
+    initPeer();
+  }
+
+  // ─── PEER HEARTBEAT: auto-detect + recover stale peer ──────────────
+  function startPeerHeartbeat() {
+    stopPeerHeartbeat();
+    peerHeartbeatInterval = setInterval(() => {
+      if (!currentUser || !peer) return;
+      // If flag says ready but peer.open is actually false, it's gone stale
+      if (isLocalPeerReady && (!peer.open || peer.destroyed)) {
+        console.warn('[Heartbeat] Stale peer detected — reinitialising…');
+        isLocalPeerReady = false;
+        updateCallReadinessUI();
+        initPeer();
+      }
+    }, 5000);
+  }
+
+  function stopPeerHeartbeat() {
+    if (peerHeartbeatInterval) {
+      clearInterval(peerHeartbeatInterval);
+      peerHeartbeatInterval = null;
+    }
+  }
+
   // ─── CALL READINESS & LINE STATUS UI ───────────────────────────────
+  function isPeerActuallyOpen() {
+    return isLocalPeerReady && peer && peer.open && !peer.destroyed;
+  }
+
   function updateCallReadinessUI() {
     if (!currentUser || !partnerUser) return;
+
+    // Live-check: if the flag says ready but peer.open is false, correct it
+    if (isLocalPeerReady && peer && (!peer.open || peer.destroyed)) {
+      isLocalPeerReady = false;
+    }
 
     // 1. My line status pill in lobby topbar
     if (myLineStatusEl && myLineStatusText) {
       if (isLocalPeerReady) {
         myLineStatusEl.className = 'line-status-pill online';
         myLineStatusText.textContent = 'Line: Ready 🟢';
+        if (retryConnectionBtn) retryConnectionBtn.classList.remove('visible');
+        if (connectingStuckTimer) { clearTimeout(connectingStuckTimer); connectingStuckTimer = null; }
       } else {
         myLineStatusEl.className = 'line-status-pill connecting';
         myLineStatusText.textContent = 'Connecting… 🟡';
+        // After 12s of connecting without success, show the Retry button
+        if (!connectingStuckTimer) {
+          connectingStuckTimer = setTimeout(() => {
+            if (!isLocalPeerReady && retryConnectionBtn) {
+              retryConnectionBtn.classList.add('visible');
+            }
+            connectingStuckTimer = null;
+          }, 12000);
+        }
       }
     }
 
@@ -1482,6 +1564,7 @@
       console.log('Peer connected with ID:', id);
       isLocalPeerReady = true;
       updateCallReadinessUI();
+      startPeerHeartbeat();
       showToast(`Connected as ${currentUser.name} 💚`);
       checkPresence();
     });
@@ -1611,8 +1694,8 @@
 
   // ─── CALL ACTIONS (OUTGOING / INCOMING) ─────────────────────────────
   async function startCall() {
-    if (!isLocalPeerReady || !peer || !peer.open || peer.destroyed) {
-      showToast('Connecting your line to the server first, please wait…');
+    if (!isPeerActuallyOpen()) {
+      showToast('Your line is reconnecting — please wait a moment…');
       initPeer();
       return;
     }
@@ -1730,6 +1813,7 @@
   function endCall() {
     clearTimeout(outgoingCallTimeout);
     stopRingtone();
+    stopPeerHeartbeat();
     if (currentCall) { currentCall.close(); currentCall = null; }
     if (conn) { conn.close(); conn = null; }
     cleanUpMedia();
@@ -1741,6 +1825,8 @@
     messagesEl.innerHTML = '';
     updateCallReadinessUI();
     showToast('Call ended.');
+    // Restart heartbeat so stale-peer detection remains active in the lobby
+    if (peer && peer.open && !peer.destroyed) startPeerHeartbeat();
   }
 
   function cleanUpMedia() {
@@ -1975,6 +2061,10 @@
     await ensureServerReady();
     const savedUser = localStorage.getItem('vc_user');
     if (savedUser && USERS[savedUser]) {
+      // Small delay when auto-logging in from localStorage — gives the previous
+      // tab's server-side WebSocket ~1s to close before we try to reconnect
+      // with the same peer ID. Prevents the 'unavailable-id' race condition.
+      await new Promise(r => setTimeout(r, 900));
       selectProfile(savedUser);
     } else {
       profileSelectScreen.classList.add('active');
