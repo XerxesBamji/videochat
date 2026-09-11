@@ -1367,7 +1367,7 @@
 
   // ─── PROFILE SELECTION ─────────────────────────────────────────────
   function selectProfile(userId) {
-    localStorage.setItem('vc_user', userId);
+    sessionStorage.setItem('vc_user', userId);
     currentUser = USERS[userId];
     partnerUser = USERS[currentUser.partnerId];
 
@@ -1398,7 +1398,7 @@
   }
 
   function switchProfile() {
-    localStorage.removeItem('vc_user');
+    sessionStorage.removeItem('vc_user');
     stopPeerHeartbeat();
     if (presencePollInterval) clearInterval(presencePollInterval);
     if (peerReconnectTimeout) clearTimeout(peerReconnectTimeout);
@@ -1562,6 +1562,7 @@
 
     peer.on('open', (id) => {
       console.log('Peer connected with ID:', id);
+      if (currentUser) currentUser._unavailableRetries = 0; // reset retry counter
       isLocalPeerReady = true;
       updateCallReadinessUI();
       startPeerHeartbeat();
@@ -1586,8 +1587,20 @@
       updateCallReadinessUI();
 
       if (err.type === 'unavailable-id') {
-        showToast(`Syncing session for ${currentUser.name}…`, 2000);
-        peerReconnectTimeout = setTimeout(initPeer, 1800);
+        // The previous session's peer ID is still registered on the server.
+        // With alive_timeout=2000ms, it will be freed within 2s. Retry every
+        // 800ms until it succeeds (up to 15 attempts = ~12s window).
+        if (!currentUser._unavailableRetries) currentUser._unavailableRetries = 0;
+        currentUser._unavailableRetries++;
+        if (currentUser._unavailableRetries <= 15) {
+          const attempt = currentUser._unavailableRetries;
+          console.log(`[Peer] unavailable-id retry ${attempt}/15 in 800ms…`);
+          if (attempt === 1) showToast(`Syncing session for ${currentUser.name}…`, 8000);
+          peerReconnectTimeout = setTimeout(initPeer, 800);
+        } else {
+          currentUser._unavailableRetries = 0;
+          showToast('Could not connect. Please press “Retry Connection” or refresh.', 6000);
+        }
       } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error' || err.type === 'socket-closed') {
         showToast('Signaling server reconnecting…', 2500);
         peerReconnectTimeout = setTimeout(initPeer, 2500);
@@ -2059,12 +2072,13 @@
   // ─── INITIALIZATION ON LOAD ────────────────────────────────────────
   window.addEventListener('DOMContentLoaded', async () => {
     await ensureServerReady();
-    const savedUser = localStorage.getItem('vc_user');
+    const savedUser = sessionStorage.getItem('vc_user');
     if (savedUser && USERS[savedUser]) {
-      // Small delay when auto-logging in from localStorage — gives the previous
-      // tab's server-side WebSocket ~1s to close before we try to reconnect
-      // with the same peer ID. Prevents the 'unavailable-id' race condition.
-      await new Promise(r => setTimeout(r, 900));
+      // Wait 2500ms after page load before reconnecting. This is slightly
+      // longer than the server's alive_timeout (2000ms), so the previous
+      // tab's peer slot is guaranteed to be freed before we try to reuse
+      // the same peer ID. Prevents the 'unavailable-id' loop on refresh.
+      await new Promise(r => setTimeout(r, 2500));
       selectProfile(savedUser);
     } else {
       profileSelectScreen.classList.add('active');

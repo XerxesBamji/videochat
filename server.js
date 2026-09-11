@@ -27,7 +27,8 @@ const peerServer = ExpressPeerServer(server, {
   path: '/',
   allow_discovery: false,
   proxied: process.env.NODE_ENV === 'production',
-  alive_timeout: 30000
+  alive_timeout: 2000,    // free dead peer slots within 2s of disconnect
+  expire_timeout: 5000    // clean up peers that never opened a connection
 });
 
 app.use('/peerjs', peerServer);
