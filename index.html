@@ -1132,7 +1132,8 @@
   const USERS = {
     xerxes: {
       id: 'xerxes',
-      peerId: 'peer-xerxes',
+      peerIdPrefix: 'peer-xerxes',
+      peerId: 'peer-xerxes',   // will be made unique in selectProfile()
       name: 'Xerxes',
       flag: '🇬🇧',
       lang: 'en',
@@ -1140,7 +1141,8 @@
     },
     malena: {
       id: 'malena',
-      peerId: 'peer-malena',
+      peerIdPrefix: 'peer-malena',
+      peerId: 'peer-malena',   // will be made unique in selectProfile()
       name: 'Malena',
       flag: '🇦🇷',
       lang: 'es',
@@ -1367,9 +1369,24 @@
 
   // ─── PROFILE SELECTION ─────────────────────────────────────────────
   function selectProfile(userId) {
-    localStorage.setItem('vc_user', userId);
-    currentUser = USERS[userId];
-    partnerUser = USERS[currentUser.partnerId];
+    sessionStorage.setItem('vc_user', userId);
+    // Deep-copy the user object so we can add session-specific properties
+    currentUser = Object.assign({}, USERS[userId]);
+    partnerUser = Object.assign({}, USERS[currentUser.partnerId]);
+
+    // Generate a unique peer ID for this page load so there is never a
+    // conflict with a previous session's still-registered peer ID.
+    // The suffix is stored in sessionStorage so a refresh reuses it
+    // (same session = same ID), but closing and reopening the tab
+    // gets a brand-new suffix.
+    const suffixKey = `vc_peer_suffix_${userId}`;
+    let suffix = sessionStorage.getItem(suffixKey);
+    if (!suffix) {
+      suffix = Date.now().toString(36); // e.g. "lz4k2a1"
+      sessionStorage.setItem(suffixKey, suffix);
+    }
+    currentUser.peerId = `${currentUser.peerIdPrefix}-${suffix}`;
+    console.log('[Profile] Using peer ID:', currentUser.peerId);
 
     // Update UI elements
     myAvatarEl.textContent = currentUser.flag;
@@ -1398,7 +1415,9 @@
   }
 
   function switchProfile() {
-    localStorage.removeItem('vc_user');
+    sessionStorage.removeItem('vc_user');
+    // Clear the peer suffix so the next login gets a fresh one
+    if (currentUser) sessionStorage.removeItem(`vc_peer_suffix_${currentUser.id}`);
     stopPeerHeartbeat();
     if (presencePollInterval) clearInterval(presencePollInterval);
     if (peerReconnectTimeout) clearTimeout(peerReconnectTimeout);
@@ -1510,7 +1529,13 @@
       const res = await fetch(`${proto}://${PEER_HOST}:${PEER_PORT}/api/presence`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        isPartnerOnline = Array.isArray(data.online) && data.online.includes(partnerUser.peerId);
+        // Match by prefix so any session suffix works (e.g. peer-malena-abc123)
+        const partnerPrefix = partnerUser.peerIdPrefix;
+        const matchingId = Array.isArray(data.online)
+          ? data.online.find(id => id.startsWith(partnerPrefix + '-') || id === partnerPrefix)
+          : null;
+        isPartnerOnline = !!matchingId;
+        if (matchingId) partnerUser.peerId = matchingId; // keep live peer ID in sync
         updatePartnerStatusUI(isPartnerOnline);
       }
     } catch (e) {
@@ -1562,6 +1587,7 @@
 
     peer.on('open', (id) => {
       console.log('Peer connected with ID:', id);
+      if (currentUser) currentUser._unavailableRetries = 0; // reset retry counter
       isLocalPeerReady = true;
       updateCallReadinessUI();
       startPeerHeartbeat();
@@ -1586,8 +1612,20 @@
       updateCallReadinessUI();
 
       if (err.type === 'unavailable-id') {
-        showToast(`Syncing session for ${currentUser.name}…`, 2000);
-        peerReconnectTimeout = setTimeout(initPeer, 1800);
+        // The previous session's peer ID is still registered on the server.
+        // With alive_timeout=2000ms, it will be freed within 2s. Retry every
+        // 800ms until it succeeds (up to 15 attempts = ~12s window).
+        if (!currentUser._unavailableRetries) currentUser._unavailableRetries = 0;
+        currentUser._unavailableRetries++;
+        if (currentUser._unavailableRetries <= 15) {
+          const attempt = currentUser._unavailableRetries;
+          console.log(`[Peer] unavailable-id retry ${attempt}/15 in 800ms…`);
+          if (attempt === 1) showToast(`Syncing session for ${currentUser.name}…`, 8000);
+          peerReconnectTimeout = setTimeout(initPeer, 800);
+        } else {
+          currentUser._unavailableRetries = 0;
+          showToast('Could not connect. Please press “Retry Connection” or refresh.', 6000);
+        }
       } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error' || err.type === 'socket-closed') {
         showToast('Signaling server reconnecting…', 2500);
         peerReconnectTimeout = setTimeout(initPeer, 2500);
@@ -2059,12 +2097,8 @@
   // ─── INITIALIZATION ON LOAD ────────────────────────────────────────
   window.addEventListener('DOMContentLoaded', async () => {
     await ensureServerReady();
-    const savedUser = localStorage.getItem('vc_user');
+    const savedUser = sessionStorage.getItem('vc_user');
     if (savedUser && USERS[savedUser]) {
-      // Small delay when auto-logging in from localStorage — gives the previous
-      // tab's server-side WebSocket ~1s to close before we try to reconnect
-      // with the same peer ID. Prevents the 'unavailable-id' race condition.
-      await new Promise(r => setTimeout(r, 900));
       selectProfile(savedUser);
     } else {
       profileSelectScreen.classList.add('active');
