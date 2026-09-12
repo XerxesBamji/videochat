@@ -1122,7 +1122,7 @@
 
 <script>
   // ─── CONFIG & PROFILES ──────────────────────────────────────────────
-  const MYMEMORY_URL = 'https://api.mymemory.translated.net/get';
+  const GTRANS_URL = 'https://translate.googleapis.com/translate_a/single';
   const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
   const PEER_HOST = isLocal ? 'localhost' : 'videochat-woi3.onrender.com';
   const PEER_PORT = isLocal ? 3000 : 443;
@@ -1880,10 +1880,20 @@
   async function translate(text, fromLang, toLang) {
     if (fromLang === toLang || !text.trim()) return text;
     try {
-      const url  = `${MYMEMORY_URL}?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
-      const res  = await fetch(url);
+      const params = new URLSearchParams({
+        client: 'gtx',
+        sl: fromLang,
+        tl: toLang,
+        dt: 't',
+        q: text
+      });
+      const res  = await fetch(`${GTRANS_URL}?${params}`);
       const data = await res.json();
-      if (data.responseStatus === 200) return data.responseData.translatedText;
+      // Google returns a nested array: data[0] is an array of sentence segments,
+      // each segment is [translated, original, ...]. Join all segments.
+      if (Array.isArray(data) && Array.isArray(data[0])) {
+        return data[0].map(seg => seg[0] || '').join('').trim() || text;
+      }
     } catch (e) {
       console.warn('Translation failed:', e);
     }
