@@ -1856,16 +1856,13 @@
     try {
       localStream = await getUserMediaStream();
       selfVideo.srcObject = localStream;
-      // Populate camera list (needed for picker); apply saved camera if set
-      await loadCameras();
-      if (activeCameraId) {
-        const saved = availableCameras.find(c => c.deviceId === activeCameraId);
-        if (saved) await switchCamera(activeCameraId);
-      } else if (localStream.getVideoTracks()[0]) {
-        // Record which camera is currently active
+      // Record which camera is now active (getUserMediaStream already applied the saved preference)
+      if (localStream.getVideoTracks()[0]) {
         const settings = localStream.getVideoTracks()[0].getSettings();
         if (settings.deviceId) activeCameraId = settings.deviceId;
       }
+      // Populate camera list for the picker (safe, no track swapping)
+      loadCameras();
     } catch (e) {
       stopRingtone();
       outgoingModal.classList.remove('active');
@@ -1908,14 +1905,11 @@
     try {
       localStream = await getUserMediaStream();
       selfVideo.srcObject = localStream;
-      await loadCameras();
-      if (activeCameraId) {
-        const saved = availableCameras.find(c => c.deviceId === activeCameraId);
-        if (saved) await switchCamera(activeCameraId);
-      } else if (localStream.getVideoTracks()[0]) {
+      if (localStream.getVideoTracks()[0]) {
         const settings = localStream.getVideoTracks()[0].getSettings();
         if (settings.deviceId) activeCameraId = settings.deviceId;
       }
+      loadCameras();
     } catch (e) {
       showToast('Camera/microphone access denied.');
       declineCall();
