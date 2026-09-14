@@ -1196,8 +1196,8 @@
   let currentCall = null;
   let incomingCallInstance = null;
   let localStream = null;
-  let isMicMuted = false;
-  let isSpeakerMuted = false;
+  let isMicMuted     = localStorage.getItem('vc_pref_mic_muted')     === 'true';
+  let isSpeakerMuted = localStorage.getItem('vc_pref_speaker_muted') === 'true';
   let isRemoteMirrored = true;
   let presencePollInterval = null;
   let isPartnerOnline = false;
@@ -1842,6 +1842,16 @@
     remoteVideo.classList.toggle('mirrored', isRemoteMirrored);
     btnMirror.classList.toggle('active', isRemoteMirrored);
 
+    // Restore saved mic/speaker preferences
+    if (localStream) localStream.getAudioTracks().forEach(t => { t.enabled = !isMicMuted; });
+    remoteVideo.muted = isSpeakerMuted;
+    btnMic.classList.toggle('muted', isMicMuted);
+    btnSpeaker.classList.toggle('muted', isSpeakerMuted);
+    document.getElementById('icon-mic-on').style.display     = isMicMuted     ? 'none' : '';
+    document.getElementById('icon-mic-off').style.display    = isMicMuted     ? ''     : 'none';
+    document.getElementById('icon-speaker-on').style.display  = isSpeakerMuted ? 'none' : '';
+    document.getElementById('icon-speaker-off').style.display = isSpeakerMuted ? ''     : 'none';
+
     boostVideoBitrate(c);
 
     c.on('stream', (remoteStream) => {
@@ -1993,6 +2003,7 @@
   // ─── IN-CALL CONTROLS ──────────────────────────────────────────────
   function toggleMic() {
     isMicMuted = !isMicMuted;
+    localStorage.setItem('vc_pref_mic_muted', isMicMuted);
     if (localStream) localStream.getAudioTracks().forEach(t => { t.enabled = !isMicMuted; });
     btnMic.classList.toggle('muted', isMicMuted);
     document.getElementById('icon-mic-on').style.display  = isMicMuted ? 'none' : '';
@@ -2002,6 +2013,7 @@
 
   function toggleSpeaker() {
     isSpeakerMuted = !isSpeakerMuted;
+    localStorage.setItem('vc_pref_speaker_muted', isSpeakerMuted);
     remoteVideo.muted = isSpeakerMuted;
     btnSpeaker.classList.toggle('muted', isSpeakerMuted);
     document.getElementById('icon-speaker-on').style.display  = isSpeakerMuted ? 'none' : '';
