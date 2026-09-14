@@ -699,6 +699,83 @@
       border-color: rgba(255,45,120,0.5);
     }
 
+    /* Camera switch — below mirror btn */
+    #btn-camera {
+      position: absolute;
+      top: 234px;
+      right: 16px;
+      z-index: 25;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      pointer-events: none;
+    }
+
+    #call-screen:hover #btn-camera {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Camera picker popup */
+    #camera-picker {
+      display: none;
+      position: absolute;
+      top: 16px;
+      right: 70px;
+      z-index: 50;
+      background: rgba(18, 18, 28, 0.95);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 8px;
+      min-width: 200px;
+      max-width: 280px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+    }
+
+    #camera-picker.visible {
+      display: block;
+    }
+
+    #camera-picker-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      padding: 4px 10px 8px;
+    }
+
+    .camera-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.83rem;
+      padding: 9px 10px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .camera-option:hover { background: rgba(255,255,255,0.08); }
+    .camera-option.active { background: rgba(109,40,217,0.3); color: #c4b5fd; }
+
+    .camera-option svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
     .icon-btn {
       background: rgba(20,20,30,0.78);
       backdrop-filter: blur(12px);
@@ -1101,6 +1178,21 @@
     </svg>
   </button>
 
+  <!-- Camera switch -->
+  <button id="btn-camera" class="icon-btn" title="Switch camera" aria-label="Switch camera" onclick="toggleCameraPicker()">
+    <svg viewBox="0 0 24 24">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+      <path d="M17 8.5 19 7" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <!-- Camera picker popup -->
+  <div id="camera-picker">
+    <div id="camera-picker-title">Select Camera</div>
+    <div id="camera-picker-list"></div>
+  </div>
+
   <!-- Chat panel -->
   <div id="chat-panel">
     <div class="translation-label">Translation to <span id="translation-target-label">English</span></div>
@@ -1208,6 +1300,8 @@
   let connectingStuckTimer = null;
   let ringAudioContext = null;
   let ringOscillatorInterval = null;
+  let availableCameras = [];         // list of { deviceId, label }
+  let activeCameraId = localStorage.getItem('vc_pref_camera_id') || null;
 
   // ─── DOM ELEMENTS ──────────────────────────────────────────────────
   const serverLoadingScreen = document.getElementById('server-loading-screen');
@@ -1762,6 +1856,16 @@
     try {
       localStream = await getUserMediaStream();
       selfVideo.srcObject = localStream;
+      // Populate camera list (needed for picker); apply saved camera if set
+      await loadCameras();
+      if (activeCameraId) {
+        const saved = availableCameras.find(c => c.deviceId === activeCameraId);
+        if (saved) await switchCamera(activeCameraId);
+      } else if (localStream.getVideoTracks()[0]) {
+        // Record which camera is currently active
+        const settings = localStream.getVideoTracks()[0].getSettings();
+        if (settings.deviceId) activeCameraId = settings.deviceId;
+      }
     } catch (e) {
       stopRingtone();
       outgoingModal.classList.remove('active');
@@ -1804,6 +1908,14 @@
     try {
       localStream = await getUserMediaStream();
       selfVideo.srcObject = localStream;
+      await loadCameras();
+      if (activeCameraId) {
+        const saved = availableCameras.find(c => c.deviceId === activeCameraId);
+        if (saved) await switchCamera(activeCameraId);
+      } else if (localStream.getVideoTracks()[0]) {
+        const settings = localStream.getVideoTracks()[0].getSettings();
+        if (settings.deviceId) activeCameraId = settings.deviceId;
+      }
     } catch (e) {
       showToast('Camera/microphone access denied.');
       declineCall();
@@ -2025,8 +2137,114 @@
     isRemoteMirrored = !isRemoteMirrored;
     remoteVideo.classList.toggle('mirrored', isRemoteMirrored);
     btnMirror.classList.toggle('active', isRemoteMirrored);
-    showToast(isRemoteMirrored ? '🔄 Video mirrored' : '🔄 Mirror off');
+    showToast(isRemoteMirrored ? 'Video mirrored' : 'Mirror off');
   }
+
+  // ─── CAMERA SELECTION ────────────────────────────────────────────
+  async function loadCameras() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      availableCameras = devices
+        .filter(d => d.kind === 'videoinput')
+        .map((d, i) => ({
+          deviceId: d.deviceId,
+          label: d.label || `Camera ${i + 1}`
+        }));
+
+      // If only 0–1 cameras, hide the button
+      const btn = document.getElementById('btn-camera');
+      if (btn) btn.style.display = availableCameras.length > 1 ? '' : 'none';
+    } catch (e) {
+      console.warn('Could not enumerate cameras:', e);
+    }
+  }
+
+  function toggleCameraPicker() {
+    const picker = document.getElementById('camera-picker');
+    if (!picker) return;
+    const isOpen = picker.classList.contains('visible');
+    if (isOpen) {
+      picker.classList.remove('visible');
+      return;
+    }
+    // Build the list fresh each time
+    buildCameraPickerList();
+    picker.classList.add('visible');
+  }
+
+  function buildCameraPickerList() {
+    const list = document.getElementById('camera-picker-list');
+    if (!list) return;
+    list.innerHTML = '';
+    availableCameras.forEach(cam => {
+      const btn = document.createElement('button');
+      btn.className = 'camera-option' + (cam.deviceId === activeCameraId ? ' active' : '');
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span>${cam.label}</span>
+      `;
+      btn.onclick = () => switchCamera(cam.deviceId);
+      list.appendChild(btn);
+    });
+  }
+
+  async function switchCamera(deviceId) {
+    // Close picker
+    const picker = document.getElementById('camera-picker');
+    if (picker) picker.classList.remove('visible');
+
+    if (deviceId === activeCameraId) return;
+
+    try {
+      // Get a new stream from the chosen camera
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      });
+
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      if (!newVideoTrack) return;
+
+      // Replace track in the PeerJS call sender so the remote sees the new camera
+      if (currentCall && currentCall.peerConnection) {
+        const sender = currentCall.peerConnection.getSenders()
+          .find(s => s.track && s.track.kind === 'video');
+        if (sender) await sender.replaceTrack(newVideoTrack);
+      }
+
+      // Stop the old video track and replace it in localStream
+      if (localStream) {
+        localStream.getVideoTracks().forEach(t => t.stop());
+        localStream.getVideoTracks().forEach(t => localStream.removeTrack(t));
+        localStream.addTrack(newVideoTrack);
+      }
+
+      // Update self-view
+      selfVideo.srcObject = localStream;
+
+      // Save preference
+      activeCameraId = deviceId;
+      localStorage.setItem('vc_pref_camera_id', deviceId);
+
+      const cam = availableCameras.find(c => c.deviceId === deviceId);
+      showToast(`📷 Switched to ${cam ? cam.label : 'new camera'}`);
+    } catch (e) {
+      console.error('Camera switch failed:', e);
+      showToast('Could not switch camera.');
+    }
+  }
+
+  // Close picker if user clicks anywhere else
+  document.addEventListener('click', (e) => {
+    const picker = document.getElementById('camera-picker');
+    const btn = document.getElementById('btn-camera');
+    if (picker && !picker.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+      picker.classList.remove('visible');
+    }
+  });
 
   // ─── EVENT LISTENERS ───────────────────────────────────────────────
   // Profile Buttons
