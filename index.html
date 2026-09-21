@@ -516,63 +516,56 @@
     }
 
     /* ─── TIMEZONE STRIP ────────────────────────────── */
+    /* ─── TIMEZONE STRIP (call screen overlay) ────────────── */
     .tz-strip {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 20px;
-      margin-bottom: 4px;
+      gap: 8px;
+      background: rgba(12, 10, 20, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 999px;
+      padding: 6px 14px;
+      pointer-events: none;
+      white-space: nowrap;
     }
 
-    .tz-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
-      padding: 12px 20px;
-      text-align: center;
-      min-width: 130px;
-      backdrop-filter: blur(8px);
+    .tz-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
-    .tz-flag {
-      font-size: 1.5rem;
-      line-height: 1;
-      margin-bottom: 4px;
-    }
+    .tz-pill-flag { font-size: 0.9rem; line-height: 1; }
 
-    .tz-city {
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 5px;
-    }
-
-    .tz-time {
-      font-size: 1.35rem;
+    .tz-pill-time {
+      font-size: 0.82rem;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: #fff;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.03em;
     }
 
-    .tz-date {
+    .tz-pill-label {
       font-size: 0.65rem;
-      color: var(--text-dim);
-      margin-top: 3px;
+      color: rgba(255,255,255,0.45);
+      font-weight: 500;
     }
 
-    .tz-divider {
-      color: var(--text-dim);
-      font-size: 1.1rem;
-      flex-shrink: 0;
+    .tz-pill-sep {
+      color: rgba(255,255,255,0.25);
+      font-size: 0.7rem;
+      margin: 0 2px;
     }
 
     @media (max-width: 400px) {
-      .tz-card { min-width: 110px; padding: 10px 14px; }
-      .tz-time { font-size: 1.1rem; }
+      .tz-pill-label { display: none; }
+      .tz-strip { padding: 5px 10px; gap: 6px; }
     }
 
     /* ─── 3. MODALS (INCOMING / OUTGOING) ─────────────── */
@@ -1134,22 +1127,6 @@
     </button>
   </div>
 
-  <!-- Timezone strip -->
-  <div class="tz-strip">
-    <div class="tz-card">
-      <div class="tz-flag">🇬🇧</div>
-      <div class="tz-city">Cardiff</div>
-      <div class="tz-time" id="tz-uk">--:--</div>
-      <div class="tz-date" id="tz-uk-date">&nbsp;</div>
-    </div>
-    <div class="tz-divider">↔️</div>
-    <div class="tz-card">
-      <div class="tz-flag">🇦🇷</div>
-      <div class="tz-city">Buenos Aires</div>
-      <div class="tz-time" id="tz-ar">--:--</div>
-      <div class="tz-date" id="tz-ar-date">&nbsp;</div>
-    </div>
-  </div>
 
   <div class="lobby-hint">
     <span>✨ Live English &amp; Spanish auto-translation ready</span>
@@ -1207,6 +1184,21 @@
     <div style="text-align:center">
       <strong>Connecting video stream…</strong>
       <p style="margin-top:8px;color:var(--text-dim);">Please hold on a moment</p>
+    </div>
+  </div>
+
+  <!-- Timezone strip — top centre of call screen -->
+  <div class="tz-strip" id="tz-strip">
+    <div class="tz-pill">
+      <span class="tz-pill-flag">🇬🇧</span>
+      <span class="tz-pill-time" id="tz-uk">--:--</span>
+      <span class="tz-pill-label">Cardiff</span>
+    </div>
+    <div class="tz-pill-sep">•</div>
+    <div class="tz-pill">
+      <span class="tz-pill-flag">🇦🇷</span>
+      <span class="tz-pill-time" id="tz-ar">--:--</span>
+      <span class="tz-pill-label">Buenos Aires</span>
     </div>
   </div>
 
@@ -1583,7 +1575,6 @@
     // Connect to PeerJS server
     initPeer();
     startPresencePolling();
-    startClockTick();
   }
 
   function switchProfile() {
@@ -1591,7 +1582,6 @@
     // Clear the peer suffix so the next login gets a fresh one
     if (currentUser) sessionStorage.removeItem(`vc_peer_suffix_${currentUser.id}`);
     stopPeerHeartbeat();
-    stopClockTick();
     if (presencePollInterval) clearInterval(presencePollInterval);
     if (peerReconnectTimeout) clearTimeout(peerReconnectTimeout);
     if (outgoingCallTimeout) clearTimeout(outgoingCallTimeout);
@@ -1741,18 +1731,11 @@
 
   function tickClocks() {
     const now = new Date();
-    const timeFmt  = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-    const dateFmt  = { weekday: 'short', day: 'numeric', month: 'short' };
-
-    const ukTimeEl   = document.getElementById('tz-uk');
-    const ukDateEl   = document.getElementById('tz-uk-date');
-    const arTimeEl   = document.getElementById('tz-ar');
-    const arDateEl   = document.getElementById('tz-ar-date');
-
-    if (ukTimeEl) ukTimeEl.textContent = now.toLocaleTimeString('en-GB', { ...timeFmt, timeZone: 'Europe/London' });
-    if (ukDateEl) ukDateEl.textContent = now.toLocaleDateString('en-GB', { ...dateFmt, timeZone: 'Europe/London' });
-    if (arTimeEl) arTimeEl.textContent = now.toLocaleTimeString('es-AR', { ...timeFmt, timeZone: 'America/Argentina/Buenos_Aires' });
-    if (arDateEl) arDateEl.textContent = now.toLocaleDateString('es-AR', { ...dateFmt, timeZone: 'America/Argentina/Buenos_Aires' });
+    const timeFmt = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    const ukEl = document.getElementById('tz-uk');
+    const arEl = document.getElementById('tz-ar');
+    if (ukEl) ukEl.textContent = now.toLocaleTimeString('en-GB', { ...timeFmt, timeZone: 'Europe/London' });
+    if (arEl) arEl.textContent = now.toLocaleTimeString('es-AR', { ...timeFmt, timeZone: 'America/Argentina/Buenos_Aires' });
   }
 
   function startClockTick() {
@@ -2052,6 +2035,7 @@
     incomingModal.classList.remove('active');
     callScreen.classList.add('active');
     waitingOverlay.classList.remove('hidden');
+    startClockTick();
 
     remoteVideo.classList.toggle('mirrored', isRemoteMirrored);
     btnMirror.classList.toggle('active', isRemoteMirrored);
@@ -2105,6 +2089,7 @@
     messagesEl.innerHTML = '';
     updateCallReadinessUI();
     showToast('Call ended.');
+    stopClockTick();
     // Restart heartbeat so stale-peer detection remains active in the lobby
     if (peer && peer.open && !peer.destroyed) startPeerHeartbeat();
   }
