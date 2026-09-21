@@ -1506,6 +1506,7 @@
     // Connect to PeerJS server
     initPeer();
     startPresencePolling();
+    requestNotifyPermission();
   }
 
   function switchProfile() {
@@ -1638,11 +1639,16 @@
   }
 
   function updatePartnerStatusUI(online) {
+    const wasOnline = isPartnerOnline;
     isPartnerOnline = !!online;
     if (online) {
       partnerStatusEl.className = 'status-badge online';
       partnerStatusText.textContent = 'Online';
       partnerHaloEl.className = 'pulse-halo online';
+      // Only notify if they just came online (not already online) and tab is not focused
+      if (!wasOnline && document.hidden) {
+        notify(`${partnerUser ? partnerUser.name : 'Partner'} is online 🟢`, 'Your line is ready — tap to call!');
+      }
     } else {
       partnerStatusEl.className = 'status-badge';
       partnerStatusText.textContent = 'Offline';
@@ -1655,6 +1661,28 @@
     checkPresence();
     if (presencePollInterval) clearInterval(presencePollInterval);
     presencePollInterval = setInterval(checkPresence, 3000);
+  }
+
+  // ─── BROWSER NOTIFICATIONS ───────────────────────────────────────────
+  function requestNotifyPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }
+
+  function notify(title, body) {
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    try {
+      const n = new Notification(title, {
+        body,
+        icon: 'https://em-content.zobj.net/source/google/387/video-camera_1f4f9.png',
+        silent: false
+      });
+      // Auto-close after 6 seconds
+      setTimeout(() => n.close(), 6000);
+    } catch (e) { /* ignore */ }
   }
 
   // ─── PEERJS SETUP ──────────────────────────────────────────────────
@@ -1738,6 +1766,10 @@
       incomingCallInstance = incomingCall;
       incomingModal.classList.add('active');
       startRingtone('incoming');
+      notify(
+        `📵 ${partnerUser ? partnerUser.name : 'Someone'} is calling!`,
+        'Tap to open the app and answer'
+      );
     });
   }
 
