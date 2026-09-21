@@ -515,6 +515,66 @@
       text-align: center;
     }
 
+    /* ─── TIMEZONE STRIP ────────────────────────────── */
+    .tz-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 20px;
+      margin-bottom: 4px;
+    }
+
+    .tz-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 12px 20px;
+      text-align: center;
+      min-width: 130px;
+      backdrop-filter: blur(8px);
+    }
+
+    .tz-flag {
+      font-size: 1.5rem;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .tz-city {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+
+    .tz-time {
+      font-size: 1.35rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+
+    .tz-date {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+
+    .tz-divider {
+      color: var(--text-dim);
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 400px) {
+      .tz-card { min-width: 110px; padding: 10px 14px; }
+      .tz-time { font-size: 1.1rem; }
+    }
+
     /* ─── 3. MODALS (INCOMING / OUTGOING) ─────────────── */
     .modal-overlay {
       display: none;
@@ -1074,6 +1134,23 @@
     </button>
   </div>
 
+  <!-- Timezone strip -->
+  <div class="tz-strip">
+    <div class="tz-card">
+      <div class="tz-flag">🇬🇧</div>
+      <div class="tz-city">Cardiff</div>
+      <div class="tz-time" id="tz-uk">--:--</div>
+      <div class="tz-date" id="tz-uk-date">&nbsp;</div>
+    </div>
+    <div class="tz-divider">↔️</div>
+    <div class="tz-card">
+      <div class="tz-flag">🇦🇷</div>
+      <div class="tz-city">Buenos Aires</div>
+      <div class="tz-time" id="tz-ar">--:--</div>
+      <div class="tz-date" id="tz-ar-date">&nbsp;</div>
+    </div>
+  </div>
+
   <div class="lobby-hint">
     <span>✨ Live English &amp; Spanish auto-translation ready</span>
     <button id="retry-connection-btn" onclick="retryConnection()">🔄 Retry Connection</button>
@@ -1506,6 +1583,7 @@
     // Connect to PeerJS server
     initPeer();
     startPresencePolling();
+    startClockTick();
   }
 
   function switchProfile() {
@@ -1513,6 +1591,7 @@
     // Clear the peer suffix so the next login gets a fresh one
     if (currentUser) sessionStorage.removeItem(`vc_peer_suffix_${currentUser.id}`);
     stopPeerHeartbeat();
+    stopClockTick();
     if (presencePollInterval) clearInterval(presencePollInterval);
     if (peerReconnectTimeout) clearTimeout(peerReconnectTimeout);
     if (outgoingCallTimeout) clearTimeout(outgoingCallTimeout);
@@ -1655,6 +1734,35 @@
     checkPresence();
     if (presencePollInterval) clearInterval(presencePollInterval);
     presencePollInterval = setInterval(checkPresence, 3000);
+  }
+
+  // ─── TIMEZONE CLOCKS ────────────────────────────────────────────
+  let clockTickInterval = null;
+
+  function tickClocks() {
+    const now = new Date();
+    const timeFmt  = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    const dateFmt  = { weekday: 'short', day: 'numeric', month: 'short' };
+
+    const ukTimeEl   = document.getElementById('tz-uk');
+    const ukDateEl   = document.getElementById('tz-uk-date');
+    const arTimeEl   = document.getElementById('tz-ar');
+    const arDateEl   = document.getElementById('tz-ar-date');
+
+    if (ukTimeEl) ukTimeEl.textContent = now.toLocaleTimeString('en-GB', { ...timeFmt, timeZone: 'Europe/London' });
+    if (ukDateEl) ukDateEl.textContent = now.toLocaleDateString('en-GB', { ...dateFmt, timeZone: 'Europe/London' });
+    if (arTimeEl) arTimeEl.textContent = now.toLocaleTimeString('es-AR', { ...timeFmt, timeZone: 'America/Argentina/Buenos_Aires' });
+    if (arDateEl) arDateEl.textContent = now.toLocaleDateString('es-AR', { ...dateFmt, timeZone: 'America/Argentina/Buenos_Aires' });
+  }
+
+  function startClockTick() {
+    tickClocks(); // immediate first tick
+    if (clockTickInterval) clearInterval(clockTickInterval);
+    clockTickInterval = setInterval(tickClocks, 1000);
+  }
+
+  function stopClockTick() {
+    if (clockTickInterval) { clearInterval(clockTickInterval); clockTickInterval = null; }
   }
 
   // ─── PEERJS SETUP ──────────────────────────────────────────────────
