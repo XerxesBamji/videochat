@@ -1024,7 +1024,7 @@
 <!-- ══════════════ 1. PROFILE SELECTION SCREEN ══════════════ -->
 <div id="profile-select-screen" class="screen">
   <div class="title-badge">Private Video Call</div>
-  <h1 class="app-title">Who are you?</h1>
+  <h1 class="app-title" id="i18n-who-are-you">Who are you?</h1>
   <div class="profile-card-container">
     <div class="profile-btn" data-user="xerxes">
       <div class="profile-avatar">🇬🇧</div>
@@ -1075,7 +1075,7 @@
   </div>
 
   <div class="lobby-hint">
-    <span>✨ Live English &amp; Spanish auto-translation ready</span>
+    <span id="i18n-translation-hint">✨ Live English &amp; Spanish auto-translation ready</span>
     <button id="retry-connection-btn" onclick="retryConnection()">🔄 Retry Connection</button>
   </div>
 </div>
@@ -1089,7 +1089,7 @@
     </div>
     <div>
       <h2 id="out-title">Calling Malena…</h2>
-      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:4px;">Waiting for answer…</p>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:4px;" id="i18n-waiting-answer">Waiting for answer…</p>
     </div>
     <div class="dialog-actions">
       <button id="btn-cancel-call" class="dialog-btn cancel">Cancel Call</button>
@@ -1106,7 +1106,7 @@
     </div>
     <div>
       <h2 id="inc-title">Xerxes is calling!</h2>
-      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:4px;">Incoming video call…</p>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-top:4px;" id="i18n-incoming-label">Incoming video call…</p>
     </div>
     <div class="dialog-actions">
       <button id="btn-decline-call" class="dialog-btn decline">Decline</button>
@@ -1128,8 +1128,8 @@
       </svg>
     </div>
     <div style="text-align:center">
-      <strong>Connecting video stream…</strong>
-      <p style="margin-top:8px;color:var(--text-dim);">Please hold on a moment</p>
+      <strong id="i18n-connecting-stream">Connecting video stream…</strong>
+      <p style="margin-top:8px;color:var(--text-dim);" id="i18n-hold-on">Please hold on a moment</p>
     </div>
   </div>
 
@@ -1241,6 +1241,128 @@
       partnerId: 'xerxes'
     }
   };
+
+  // ─── LOCALISATION ────────────────────────────────────────────────────
+  let currentLang = 'en';
+
+  const STRINGS = {
+    en: {
+      whoAreYou:        'Who are you?',
+      switchProfile:    'Switch Profile',
+      translationHint:  '✨ Live English & Spanish auto-translation ready',
+      retryBtn:         '🔄 Retry Connection',
+      waitingAnswer:    'Waiting for answer…',
+      cancelCall:       'Cancel Call',
+      incomingLabel:    'Incoming video call…',
+      decline:          'Decline',
+      accept:           'Accept',
+      connectingStream: 'Connecting video stream…',
+      holdOn:           'Please hold on a moment',
+      endCall:          'End Call',
+      msgPlaceholder:   'Type a message…',
+      send:             'Send',
+      selectCamera:     'Select Camera',
+      connectingLine:   'Connecting your line…',
+      isOffline:        'is Offline',
+      callBtn:          'Call',
+      connectedAs:      'Connected as',
+      syncing:          'Syncing session for',
+      cantConnect:      'Could not connect. Please press "Retry Connection" or refresh.',
+      signalingRecon:   'Signaling server reconnecting…',
+      busy:             'is busy / declined the call.',
+      cancelled:        'cancelled the call.',
+      noCamera:         'Could not access camera or microphone. Check browser permissions.',
+      lineWait:         'Your line is reconnecting — please wait a moment…',
+      cameraRequired:   'Camera/microphone access is required for video calls.',
+      noAnswer:         "didn't answer. They might be away or offline.",
+      accessDenied:     'Camera/microphone access denied.',
+      connected:        '💚 Connected!',
+      callFailed:       'Call connection ended or failed.',
+      callEnded:        'Call ended.',
+      micMuted:         '🔇 Mic muted',
+      micActive:        '🎤 Mic active',
+      speakerMuted:     '🔇 Speaker muted',
+      speakerOn:        '🔊 Speaker on',
+      mirrored:         'Video mirrored',
+      mirrorOff:        'Mirror off',
+      cameraSwitch:     '📷 Switched to',
+      cameraSwitchFail: 'Could not switch camera.',
+      partnerOnline:    'is online 🟢',
+      partnerOnlineBody:'Your line is ready — tap to call!',
+      callingBody:      'Tap to open the app and answer',
+    },
+    es: {
+      whoAreYou:        '¿Quién eres?',
+      switchProfile:    'Cambiar perfil',
+      translationHint:  '✨ Traducción automática en vivo Español & Inglés',
+      retryBtn:         '🔄 Reintentar conexión',
+      waitingAnswer:    'Esperando respuesta…',
+      cancelCall:       'Cancelar llamada',
+      incomingLabel:    'Videollamada entrante…',
+      decline:          'Rechazar',
+      accept:           'Aceptar',
+      connectingStream: 'Conectando video…',
+      holdOn:           'Por favor espera un momento',
+      endCall:          'Finalizar llamada',
+      msgPlaceholder:   'Escribe un mensaje…',
+      send:             'Enviar',
+      selectCamera:     'Seleccionar cámara',
+      connectingLine:   'Conectando tu línea…',
+      isOffline:        'está desconectado',
+      callBtn:          'Llamar a',
+      connectedAs:      'Conectada como',
+      syncing:          'Sincronizando sesión para',
+      cantConnect:      'No se pudo conectar. Presiona "Reintentar conexión" o recarga.',
+      signalingRecon:   'Reconectando al servidor…',
+      busy:             'está ocupado / rechazó la llamada.',
+      cancelled:        'canceló la llamada.',
+      noCamera:         'No se pudo acceder a la cámara o el micrófono.',
+      lineWait:         'Tu línea se está reconectando — espera un momento…',
+      cameraRequired:   'Se requiere acceso a la cámara y el micrófono.',
+      noAnswer:         'no contestó. Puede que esté ocupado o desconectado.',
+      accessDenied:     'Acceso a cámara y micrófono denegado.',
+      connected:        '💚 ¡Conectada!',
+      callFailed:       'La conexión de la llamada falló.',
+      callEnded:        'Llamada finalizada.',
+      micMuted:         '🔇 Micrófono silenciado',
+      micActive:        '🎤 Micrófono activo',
+      speakerMuted:     '🔇 Altavoz silenciado',
+      speakerOn:        '🔊 Altavoz activado',
+      mirrored:         'Video en espejo',
+      mirrorOff:        'Espejo desactivado',
+      cameraSwitch:     '📷 Cambiado a',
+      cameraSwitchFail: 'No se pudo cambiar la cámara.',
+      partnerOnline:    'está en línea 🟢',
+      partnerOnlineBody:'Tu línea está lista — ¡toca para llamar!',
+      callingBody:      'Toca para abrir la app y contestar',
+    }
+  };
+
+  function t(key) {
+    return (STRINGS[currentLang] || STRINGS.en)[key] || key;
+  }
+
+  function applyI18n(lang) {
+    currentLang = lang || 'en';
+    const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const ph  = (id, text) => { const el = document.getElementById(id); if (el) el.placeholder = text; };
+    document.documentElement.lang = currentLang;
+    set('i18n-who-are-you',       t('whoAreYou'));
+    set('switch-profile-btn',     t('switchProfile'));
+    set('i18n-translation-hint',  t('translationHint'));
+    set('retry-connection-btn',   t('retryBtn'));
+    set('i18n-waiting-answer',    t('waitingAnswer'));
+    set('btn-cancel-call',        t('cancelCall'));
+    set('i18n-incoming-label',    t('incomingLabel'));
+    set('btn-decline-call',       t('decline'));
+    set('btn-accept-call',        t('accept'));
+    set('i18n-connecting-stream', t('connectingStream'));
+    set('i18n-hold-on',           t('holdOn'));
+    set('btn-end',                t('endCall'));
+    set('btn-send',               t('send'));
+    set('camera-picker-title',    t('selectCamera'));
+    ph('msg-input',               t('msgPlaceholder'));
+  }
 
   const ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -1482,6 +1604,9 @@
     currentUser.peerId = `${currentUser.peerIdPrefix}-${suffix}`;
     console.log('[Profile] Using peer ID:', currentUser.peerId);
 
+    // Apply UI language for the selected user
+    applyI18n(currentUser.lang);
+
     // Update UI elements
     myAvatarEl.textContent = currentUser.flag;
     myNameEl.textContent   = currentUser.name;
@@ -1604,15 +1729,15 @@
     if (!isLocalPeerReady) {
       callPartnerBtn.disabled = true;
       callPartnerBtn.className = 'disabled';
-      if (callPartnerBtnText) callPartnerBtnText.textContent = 'Connecting your line…';
+      if (callPartnerBtnText) callPartnerBtnText.textContent = t('connectingLine');
     } else if (!isPartnerOnline) {
       callPartnerBtn.disabled = true;
       callPartnerBtn.className = 'disabled';
-      if (callPartnerBtnText) callPartnerBtnText.textContent = `${partnerUser.name} is Offline`;
+      if (callPartnerBtnText) callPartnerBtnText.textContent = `${partnerUser.name} ${t('isOffline')}`;
     } else {
       callPartnerBtn.disabled = false;
       callPartnerBtn.className = 'ready';
-      if (callPartnerBtnText) callPartnerBtnText.textContent = `Call ${partnerUser.name}`;
+      if (callPartnerBtnText) callPartnerBtnText.textContent = `${t('callBtn')} ${partnerUser.name}`;
     }
   }
 
@@ -1647,7 +1772,7 @@
       partnerHaloEl.className = 'pulse-halo online';
       // Only notify if they just came online (not already online) and tab is not focused
       if (!wasOnline && document.hidden) {
-        notify(`${partnerUser ? partnerUser.name : 'Partner'} is online 🟢`, 'Your line is ready — tap to call!');
+        notify(`${partnerUser ? partnerUser.name : 'Partner'} ${t('partnerOnline')}`, t('partnerOnlineBody'));
       }
     } else {
       partnerStatusEl.className = 'status-badge';
@@ -1713,7 +1838,7 @@
       isLocalPeerReady = true;
       updateCallReadinessUI();
       startPeerHeartbeat();
-      showToast(`Connected as ${currentUser.name} 💚`);
+      showToast(`${t('connectedAs')} ${currentUser.name} 💚`);
       checkPresence();
     });
 
@@ -1742,14 +1867,14 @@
         if (currentUser._unavailableRetries <= 15) {
           const attempt = currentUser._unavailableRetries;
           console.log(`[Peer] unavailable-id retry ${attempt}/15 in 800ms…`);
-          if (attempt === 1) showToast(`Syncing session for ${currentUser.name}…`, 8000);
+          if (attempt === 1) showToast(`${t('syncing')} ${currentUser.name}…`, 8000);
           peerReconnectTimeout = setTimeout(initPeer, 800);
         } else {
           currentUser._unavailableRetries = 0;
-          showToast('Could not connect. Please press “Retry Connection” or refresh.', 6000);
+          showToast(t('cantConnect'), 6000);
         }
       } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error' || err.type === 'socket-closed') {
-        showToast('Signaling server reconnecting…', 2500);
+        showToast(t('signalingRecon'), 2500);
         peerReconnectTimeout = setTimeout(initPeer, 2500);
       } else if (err.type !== 'disconnected') {
         showToast(`Connection notice: ${err.type || err.message}`);
@@ -1767,8 +1892,8 @@
       incomingModal.classList.add('active');
       startRingtone('incoming');
       notify(
-        `📵 ${partnerUser ? partnerUser.name : 'Someone'} is calling!`,
-        'Tap to open the app and answer'
+        `📵 ${partnerUser ? partnerUser.name : 'Someone'} ${t('partnerOnline').replace('🟢','')}is calling!`,
+        t('callingBody')
       );
     });
   }
@@ -1788,14 +1913,14 @@
       if (data.type === 'call-declined') {
         stopRingtone();
         outgoingModal.classList.remove('active');
-        showToast(`${partnerUser.name} is busy / declined the call.`);
+        showToast(`${partnerUser.name} ${t('busy')}`);
         cleanUpMedia();
         return;
       }
       if (data.type === 'call-cancelled') {
         stopRingtone();
         incomingModal.classList.remove('active');
-        showToast(`${partnerUser.name} cancelled the call.`);
+        showToast(`${partnerUser.name} ${t('cancelled')}`);
         incomingCallInstance = null;
         return;
       }
@@ -1847,7 +1972,7 @@
           return await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
         } catch (err3) {
           console.error('All getUserMedia attempts failed:', err3.name, err3.message);
-          showToast('Could not access camera or microphone. Check browser permissions.', 5000);
+          showToast(t('noCamera'), 5000);
           throw err3;
         }
       }
@@ -1877,7 +2002,7 @@
   // ─── CALL ACTIONS (OUTGOING / INCOMING) ─────────────────────────────
   async function startCall() {
     if (!isPeerActuallyOpen()) {
-      showToast('Your line is reconnecting — please wait a moment…');
+      showToast(t('lineWait'));
       initPeer();
       return;
     }
@@ -1898,7 +2023,7 @@
     } catch (e) {
       stopRingtone();
       outgoingModal.classList.remove('active');
-      showToast('Camera/microphone access is required for video calls.');
+      showToast(t('cameraRequired'));
       return;
     }
 
@@ -1915,7 +2040,7 @@
     outgoingCallTimeout = setTimeout(() => {
       if (outgoingModal.classList.contains('active')) {
         cancelCall();
-        showToast(`${partnerUser.name} didn't answer. They might be away or offline.`, 4500);
+        showToast(`${partnerUser.name} ${t('noAnswer')}`, 4500);
       }
     }, 30000);
   }
@@ -1943,7 +2068,7 @@
       }
       loadCameras();
     } catch (e) {
-      showToast('Camera/microphone access denied.');
+      showToast(t('accessDenied'));
       declineCall();
       return;
     }
@@ -1997,7 +2122,7 @@
       stopRingtone();
       remoteVideo.srcObject = remoteStream;
       waitingOverlay.classList.add('hidden');
-      showToast('💚 Connected!');
+      showToast(t('connected'));
       showChatPanel();
       boostVideoBitrate(c);
     });
@@ -2010,7 +2135,7 @@
       console.warn('Call stream error:', e);
       clearTimeout(outgoingCallTimeout);
       endCall();
-      showToast('Call connection ended or failed.');
+      showToast(t('callFailed'));
     });
   }
 
@@ -2028,7 +2153,7 @@
     lobbyScreen.classList.add('active');
     messagesEl.innerHTML = '';
     updateCallReadinessUI();
-    showToast('Call ended.');
+    showToast(t('callEnded'));
     // Restart heartbeat so stale-peer detection remains active in the lobby
     if (peer && peer.open && !peer.destroyed) startPeerHeartbeat();
   }
@@ -2146,7 +2271,7 @@
     btnMic.classList.toggle('muted', isMicMuted);
     document.getElementById('icon-mic-on').style.display  = isMicMuted ? 'none' : '';
     document.getElementById('icon-mic-off').style.display = isMicMuted ? '' : 'none';
-    showToast(isMicMuted ? '🔇 Mic muted' : '🎤 Mic active');
+    showToast(isMicMuted ? t('micMuted') : t('micActive'));
   }
 
   function toggleSpeaker() {
@@ -2156,14 +2281,14 @@
     btnSpeaker.classList.toggle('muted', isSpeakerMuted);
     document.getElementById('icon-speaker-on').style.display  = isSpeakerMuted ? 'none' : '';
     document.getElementById('icon-speaker-off').style.display = isSpeakerMuted ? '' : 'none';
-    showToast(isSpeakerMuted ? '🔇 Speaker muted' : '🔊 Speaker on');
+    showToast(isSpeakerMuted ? t('speakerMuted') : t('speakerOn'));
   }
 
   function toggleMirror() {
     isRemoteMirrored = !isRemoteMirrored;
     remoteVideo.classList.toggle('mirrored', isRemoteMirrored);
     btnMirror.classList.toggle('active', isRemoteMirrored);
-    showToast(isRemoteMirrored ? 'Video mirrored' : 'Mirror off');
+    showToast(isRemoteMirrored ? t('mirrored') : t('mirrorOff'));
   }
 
   // ─── CAMERA SELECTION ────────────────────────────────────────────
@@ -2256,10 +2381,10 @@
       localStorage.setItem('vc_pref_camera_id', deviceId);
 
       const cam = availableCameras.find(c => c.deviceId === deviceId);
-      showToast(`📷 Switched to ${cam ? cam.label : 'new camera'}`);
+      showToast(`${t('cameraSwitch')} ${cam ? cam.label : 'new camera'}`);
     } catch (e) {
       console.error('Camera switch failed:', e);
-      showToast('Could not switch camera.');
+      showToast(t('cameraSwitchFail'));
     }
   }
 
