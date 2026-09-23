@@ -515,6 +515,51 @@
       text-align: center;
     }
 
+    /* ─── PROFILE SCREEN TIMEZONE STRIP ────────────────────── */
+    .profile-tz {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .profile-tz-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 14px;
+      padding: 10px 18px;
+      min-width: 110px;
+    }
+
+    .profile-tz-flag { font-size: 1.2rem; line-height: 1; }
+
+    .profile-tz-city {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .profile-tz-time {
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: rgba(255,255,255,0.85);
+      letter-spacing: 0.03em;
+    }
+
+    .profile-tz-sep {
+      color: var(--text-dim);
+      font-size: 1rem;
+    }
+
     /* ─── 3. MODALS (INCOMING / OUTGOING) ─────────────── */
     .modal-overlay {
       display: none;
@@ -1036,6 +1081,21 @@
       <div class="profile-avatar">🇦🇷</div>
       <div class="profile-name">Malena</div>
       <div class="profile-sub">Argentina</div>
+    </div>
+  </div>
+
+  <!-- Timezone strip -->
+  <div class="profile-tz">
+    <div class="profile-tz-card">
+      <span class="profile-tz-flag">🇬🇧</span>
+      <span class="profile-tz-city">Cardiff</span>
+      <span class="profile-tz-time" id="ptz-uk">--:--</span>
+    </div>
+    <span class="profile-tz-sep">↔️</span>
+    <div class="profile-tz-card">
+      <span class="profile-tz-flag">🇦🇷</span>
+      <span class="profile-tz-city">Buenos Aires</span>
+      <span class="profile-tz-time" id="ptz-ar">--:--</span>
     </div>
   </div>
 </div>
@@ -2506,6 +2566,17 @@
 
   // ─── INITIALIZATION ON LOAD ────────────────────────────────────────
   window.addEventListener('DOMContentLoaded', async () => {
+    // Start profile-screen clocks (runs forever, very cheap)
+    (function tickProfileClocks() {
+      const now = new Date();
+      const fmt = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+      const ukEl = document.getElementById('ptz-uk');
+      const arEl = document.getElementById('ptz-ar');
+      if (ukEl) ukEl.textContent = now.toLocaleTimeString('en-GB', { ...fmt, timeZone: 'Europe/London' });
+      if (arEl) arEl.textContent = now.toLocaleTimeString('es-AR', { ...fmt, timeZone: 'America/Argentina/Buenos_Aires' });
+      setTimeout(tickProfileClocks, 1000);
+    })();
+
     await ensureServerReady();
     const savedUser = sessionStorage.getItem('vc_user');
     if (savedUser && USERS[savedUser]) {
