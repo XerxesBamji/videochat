@@ -1044,9 +1044,143 @@
       #btn-send { padding: 0 20px; }
       .msg-bubble { max-width: 88%; }
     }
+    /* ─── PASSWORD SCREEN ───────────────────────────────── */
+    #password-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      background: var(--bg);
+      padding: 24px;
+    }
+
+    #password-screen.active { display: flex; }
+
+    .pwd-icon {
+      font-size: 2.8rem;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 18px rgba(255,45,120,0.45));
+    }
+
+    .pwd-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      margin: 0 0 4px;
+      text-align: center;
+    }
+
+    .pwd-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin: 0 0 28px;
+      text-align: center;
+    }
+
+    .pwd-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    #pwd-input {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 14px;
+      padding: 14px 18px;
+      color: #fff;
+      font-size: 1.3rem;
+      letter-spacing: 0.25em;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-width: 0;
+    }
+
+    #pwd-input:focus {
+      border-color: rgba(255,45,120,0.6);
+      box-shadow: 0 0 0 3px rgba(255,45,120,0.15);
+    }
+
+    #pwd-input.error {
+      border-color: rgba(255,60,60,0.7);
+      box-shadow: 0 0 0 3px rgba(255,60,60,0.2);
+      animation: pwdShake 0.4s ease;
+    }
+
+    @keyframes pwdShake {
+      0%, 100% { transform: translateX(0); }
+      20%       { transform: translateX(-8px); }
+      40%       { transform: translateX(8px); }
+      60%       { transform: translateX(-6px); }
+      80%       { transform: translateX(6px); }
+    }
+
+    #pwd-eye {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 13px 14px;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    #pwd-eye:hover { background: rgba(255,255,255,0.12); }
+
+    #pwd-submit {
+      width: 100%;
+      max-width: 300px;
+      margin-top: 14px;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--pink));
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      letter-spacing: 0.4px;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    #pwd-submit:hover  { opacity: 0.9; }
+    #pwd-submit:active { transform: scale(0.98); }
+
+    #pwd-error {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: #ff6b6b;
+      min-height: 1.1em;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
+
+<!-- ══════════════ PASSWORD GATE ══════════════ -->
+<div id="password-screen">
+  <div class="title-badge">Private Video Call</div>
+  <div class="pwd-icon">🔒</div>
+  <h1 class="pwd-title">Enter Password</h1>
+  <p class="pwd-subtitle">Ingresa la contraseña</p>
+  <div class="pwd-input-row">
+    <input id="pwd-input" type="password" inputmode="numeric" placeholder="••••••" autocomplete="off" />
+    <button id="pwd-eye" title="Show/hide" aria-label="Show password">👁️</button>
+  </div>
+  <button id="pwd-submit">Unlock • Desbloquear</button>
+  <p id="pwd-error"></p>
+</div>
 
 <!-- ══════════════ 0. SERVER WAKE-UP / LOADING SCREEN ══════════════ -->
 <div id="server-loading-screen" class="hidden">
@@ -1275,6 +1409,9 @@
 
 <script>
   // ─── CONFIG & PROFILES ──────────────────────────────────────────────
+  const REQUIRE_PASSWORD = true;   // set to false to disable the gate entirely
+  const APP_PASSWORD     = '150226';
+
   const GTRANS_URL = 'https://translate.googleapis.com/translate_a/single';
   const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
   const PEER_HOST = isLocal ? 'localhost' : 'videochat-woi3.onrender.com';
@@ -2564,6 +2701,50 @@
     }
   }
 
+  // ─── PASSWORD GATE ───────────────────────────────────────────────────
+  function setupPasswordScreen() {
+    const screen   = document.getElementById('password-screen');
+    const input    = document.getElementById('pwd-input');
+    const submitBtn= document.getElementById('pwd-submit');
+    const eyeBtn   = document.getElementById('pwd-eye');
+    const errorEl  = document.getElementById('pwd-error');
+
+    function attempt() {
+      if (input.value === APP_PASSWORD) {
+        sessionStorage.setItem('vc_auth', '1');
+        screen.classList.remove('active');
+        proceedToApp();
+      } else {
+        errorEl.textContent = 'Incorrect • Incorrecto';
+        input.classList.add('error');
+        input.value = '';
+        setTimeout(() => input.classList.remove('error'), 450);
+        input.focus();
+      }
+    }
+
+    submitBtn.addEventListener('click', attempt);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') attempt(); });
+    eyeBtn.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      eyeBtn.textContent = show ? '🙈' : '👁️';
+    });
+
+    screen.classList.add('active');
+    setTimeout(() => input.focus(), 50);
+  }
+
+  async function proceedToApp() {
+    await ensureServerReady();
+    const savedUser = sessionStorage.getItem('vc_user');
+    if (savedUser && USERS[savedUser]) {
+      selectProfile(savedUser);
+    } else {
+      profileSelectScreen.classList.add('active');
+    }
+  }
+
   // ─── INITIALIZATION ON LOAD ────────────────────────────────────────
   window.addEventListener('DOMContentLoaded', async () => {
     // Start profile-screen clocks (runs forever, very cheap)
@@ -2577,12 +2758,10 @@
       setTimeout(tickProfileClocks, 1000);
     })();
 
-    await ensureServerReady();
-    const savedUser = sessionStorage.getItem('vc_user');
-    if (savedUser && USERS[savedUser]) {
-      selectProfile(savedUser);
+    if (REQUIRE_PASSWORD && sessionStorage.getItem('vc_auth') !== '1') {
+      setupPasswordScreen();
     } else {
-      profileSelectScreen.classList.add('active');
+      await proceedToApp();
     }
   });
 </script>
